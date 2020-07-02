@@ -1,0 +1,5 @@
+# bullshit gitignore
+
+*.exe
+*.tap
+*.tzx
