@@ -11,7 +11,7 @@ ENTRY_POINT EQU 0x8000
 
     org ENTRY_POINT
 
-    call 0xdaf
+	call 0xdaf
 	xor a
 	call 0x229b
 
@@ -219,7 +219,7 @@ changeanimframe:
 	ld (hatmancurrentframe), a
 	ret
 
-	;C_Div_D:
+	;c Divided by d:
 	;Inputs:
 	;     C is the numerator
 	;     D is the denominator
