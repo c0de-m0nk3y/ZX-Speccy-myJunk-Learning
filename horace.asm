@@ -250,9 +250,7 @@ colourcells:
 	ret
 
 	
-
-
-
 include "hatman.asm"
 
     end ENTRY_POINT
+	
