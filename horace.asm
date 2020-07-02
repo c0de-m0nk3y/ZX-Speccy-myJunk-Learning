@@ -18,25 +18,39 @@ ENTRY_POINT EQU 0x8000
 				;a beginner's, unoptimised sprite routine
 main:	
 	halt			;the HALT is important to avoid sprite flicker, and it slows down the program
-	call deletesprite	;we need to delete the old position of the sprite
+	call deletesprites	;we need to delete the old position of the sprite
 	call checkkeys
-	call drawsprite		;get correct preshifted graphic, and draw it on the screen
+	call drawsprites		;get correct preshifted graphic, and draw it on the screen
 	call getcell
 	call colourcells
 	jr main			;loop!
 	
-deletesprite:			;we need to delete the old sprite before we draw the new one.  The sprite is 2 bytes wide & 16 pixels high
+deletesprites:			;we need to delete the old sprite before we draw the new one.  The sprite is 2 bytes wide & 16 pixels high
+	;hatman
 	ld bc,(hatmanx)		;make C=hatmanx and B=hatmany, remember LD BC,(hatmanx) gets both hatmanx and hatmany in one LD as they are adjacent in memory
 	call yx2pix		;point DE at the corresponding screen address
 	ld b,16			;sprite is 16 lines high
-delp:	
+delp_hatman:	
     xor a			;empty A to delete
 	ld (de),a		;repeat a total of 2 times
 	inc e			;next column along
 	ld (de),a
 	dec e			;move DE back to start of line
 	call nextlinedown	;move DE down one line
-	djnz delp		;repeat 16 times
+	djnz delp_hatman		;repeat 16 times
+	;biker1	
+	ld bc,(bikerx)		
+	call yx2pix		
+	ld b,16			
+delp_biker:	
+    xor a			
+	ld (de),a		
+	inc e			
+	ld (de),a
+	dec e			
+	call nextlinedown	
+	djnz delp_biker		
+
 	ret
 	
 checkkeys:
@@ -98,12 +112,13 @@ moveright:
     ld (hatmanx),a
     ret
 
-drawsprite:
+drawsprites:
+	;hatman
 	ld bc,(hatmanx)		;make C=hatmanx and B=hatmany, remember LD BC,(hatmanx) gets both hatmanx and hatmany in one LD as they are adjacent in memory
 	call yx2pix		;point DE at corresponding screen position
-	call getsprite		;point HL at the correct graphic
+	call getsprite_hatman		;point HL at the correct graphic
 	ld b,16		;sprite is 16 lines high
-dslp:	
+dslp_hatman:	
     ld a,(hl)		;take a byte of graphic
 	ld (de),a		;and put it on the screen
 	inc hl			;next byte of graphic
@@ -113,7 +128,24 @@ dslp:
 	inc hl
 	dec e			;move DE back to left hand side of sprite
 	call nextlinedown
-	djnz dslp		;repeat for all 16 lines
+	djnz dslp_hatman		;repeat for all 16 lines
+
+	;biker1
+	ld bc,(bikerx)		
+	call yx2pix		
+	call getsprite_biker		
+	ld b,16		
+dslp_biker:	
+    ld a,(hl)		
+	ld (de),a		
+	inc hl			
+	inc e			
+	ld a,(hl)		
+	ld (de),a
+	inc hl
+	dec e			
+	call nextlinedown
+	djnz dslp_biker		
 	ret
 
 
@@ -157,7 +189,7 @@ yx2pix:		;don't worry about how this works yet! just arrive with arrive with B=y
 	ld e,a
 	ret
 
-getsprite:
+getsprite_hatman:
 	ld a, (hatmananimtimer)
 	dec a
 	ld (hatmananimtimer), a
@@ -170,6 +202,9 @@ getsprite:
 	ret z
 	ld hl, hatman+32
     ret
+
+getsprite_biker:
+	ld hl, biker
 
 animframeends:
 	ld a, (hatmananimdelay)
@@ -263,5 +298,6 @@ colourcells:
 
 	
 include "hatman.asm"
+include "biker.asm"
 
     end ENTRY_POINT

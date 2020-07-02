@@ -1,6 +1,9 @@
 ; ASM data file from a ZX-Paintbrush picture with 16 x 16 pixels (= 2 x 2 characters)
 
 ; line based output of pixel data:
+bikerx  db 0
+bikery  db 32
+bikerspeed EQU 8
 
 biker:
 db %00000011, %11000000
