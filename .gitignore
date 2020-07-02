@@ -1,5 +1,5 @@
-# bullshit gitignore
 
+pasmo*
 *.exe
 *.tap
 *.tzx
