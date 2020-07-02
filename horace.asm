@@ -246,6 +246,19 @@ colourcells:
 	add hl, bc ; hl now contains exact memory address for colour attributes at players xy
 	ld a, (hatmanattributes)
 	ld (hl), a
+	ld a, (hatmanattributes+1)
+	ld b, 0
+	ld c, 1
+	add hl,bc
+	ld (hl), a
+	ld a, (hatmanattributes+2)
+	ld c, 31
+	add hl,bc
+	ld (hl),a
+	ld a, (hatmanattributes+3)
+	ld c, 1
+	add hl,bc
+	ld (hl),a	
 
 	ret
 
@@ -253,4 +266,3 @@ colourcells:
 include "hatman.asm"
 
     end ENTRY_POINT
-	

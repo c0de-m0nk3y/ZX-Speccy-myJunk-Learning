@@ -7,7 +7,7 @@ hatmanx db 0
 hatmany db 0
 hatmancellx db 0
 hatmancelly db 0
-hatmanspeed EQU 1
+hatmanspeed EQU 4
 hatmanframes EQU 2
 hatmancurrentframe db 0
 hatmananimdelay db 10
