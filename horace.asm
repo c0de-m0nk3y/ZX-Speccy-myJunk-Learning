@@ -225,7 +225,7 @@ getcell:
        djnz $-8
 	ld a,c
 	ld (hatmancelly), a
-     ret
+    ret
 
 ;attribute memory begins at 0x5800
 ;0x5800 + ((y*32) + x)
@@ -259,7 +259,6 @@ colourcells:
 	ld c, 1
 	add hl,bc
 	ld (hl),a	
-
 	ret
 
 	
