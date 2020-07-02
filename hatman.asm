@@ -1,0 +1,54 @@
+; ASM data file from a ZX-Paintbrush picture with 16 x 16 pixels (= 2 x 2 characters)
+; and an attribute area of 4 bytes
+
+; line based output of pixel data:
+
+hatmanx db 0
+hatmany db 0
+hatmancellx db 0
+hatmancelly db 0
+hatmanspeed EQU 1
+hatmanframes EQU 2
+hatmancurrentframe db 0
+hatmananimdelay db 10
+hatmananimtimer db (hatmananimdelay)
+
+
+hatman:
+db %00000111, %11100000
+db %00001111, %11110000
+db %00011111, %11111000
+db %00011111, %11111000
+db %11111111, %11111111
+db %00001000, %00010000
+db %00001100, %00110000
+db %00000110, %01100000
+db %00000011, %11000000
+db %00011111, %11111000
+db %00000011, %11001000
+db %00000011, %11001000
+db %00000011, %11000000
+db %00000010, %00000000
+db %00000010, %00000000
+db %00001110, %00000000
+;
+db %00000111, %11100000
+db %00001111, %11110000
+db %00011111, %11111000
+db %00011111, %11111000
+db %11111111, %11111111
+db %00001000, %00010000
+db %00001100, %00110000
+db %00000110, %01100000
+db %00000011, %11000000
+db %00011111, %11111000
+db %00010011, %11000000
+db %00010011, %11000000
+db %00000011, %11000000
+db %00000000, %01000000
+db %00000000, %01000000
+db %00000000, %01110000
+;
+hatmanattributes:
+db %00111011, %00111011
+db %00111001, %00111001 ; pinkds hat, blue trousers, white paper
