@@ -39,6 +39,7 @@ ENTRY_POINT EQU 32768
 ; 23606: pointer to font, minus 256. (256 = 32 * 8 bytes, 32 is the code for first printable character)
 ; 23560: ASCII code of the last keypress.
 ; 23672: clock, incremented 50 times per second.
+; 23675: UDG system variable (144/0x90 is first ascii code for UDGs)
 ; 23693: PAPER/INK/BRIGHT colour.
 ; 23695: PAPER/INK/BRIGHT colour.
 ; 23734: I/O channels
@@ -52,10 +53,13 @@ ENTRY_POINT EQU 32768
     call 0xdaf ;clear screen + open ch2
     ld a,3 ;choose border colour code
     call 0x229b ;sets border colour to a
-
+    ld hl,heart
+    ld (23675), hl
 
 forever
+    ld a, 0x90
+    rst 16
     jp forever
 
-
+include "customcharacters.asm"
 end ENTRY_POINT
