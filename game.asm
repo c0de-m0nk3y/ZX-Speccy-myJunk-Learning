@@ -48,61 +48,132 @@ ENTRY_POINT EQU 32768
 ; 65535: last byte of RAM on a 48K Spectrum
 
 ;initialization of app:
+    call start
+
+main
+    halt
+    call deletesprites
+    call update
+    ;call debug
+    jp main
+
+debug:
+    call random
+    rst 16
+
+start:
+    ;init screen
     call 0xdaf ;clear screen + open ch2
     ld a,3 ;choose border colour code
     call 0x229b ;sets border colour to a
 
-main
-    halt
-    call start
-    call update
-    jp main
-
-start:
-    ;todo: come up with a way to randomise when they spawn
-    
+;just deletes everything, no need to worry about screen memory layout
+deletesprites:
+    ld bc,6144 ; 32 bytes * 192 scan lines
+    xor a
+    ld ix,16384 ;the address of the start of screen memory.
+delloop:
+    ld (ix),a
+    inc ix
+    dec bc
+    cp b ; is be 0?
+    ret z
+    jp delloop
     ret
 
 update:
     ;update cars
     ld ix,uppervehicles
-    ld b,maxvehicles
-uppercarsloop:
+    ld b,MAX_VEHICLES
+uppercarsupdateloop:
     dec b
-    ld a, (ix) ;check 'isAlive'
+    ld a,(ix) ;check 'isAlive'
     cp 0
-    call z,carloopiterate ;if=0, jp to next car
+    
+    call z,checktospawncar ;if=0, check to see if random decides to spawn car
+    jr z,loopnextupdate ;if=0, jp to next car
     push bc ;save b to stack
-    ld a,(ix+4) ;load bc with this vehicles xy
-    ld b,a
-    ld a,(ix+5)
-    ld b,a
+    ld a,(ix+3) ;get pos x into a
+    add a,(ix+1) ;apply speed to it
+    ld (ix+3),a ;set the new pos x
+    ld b,(ix+4) ;get y pos, ready for sprite drawing routine
+    ld c,(ix+3) ;get x pos also
     ld a, (ix+2) ;next we care about the 3rd byte, the sprite index
     cp 0 ;pushbike
-    ld hl,pushbike8
+    call z, ldbike
     call z, drawsprite8
     cp 1 ;motorbike
-    ld hl,motorbike
+    call z,ldmotorbike
     call z, drawsprite16
     cp 2 ;truck
-    ld hl,truck
+    call z, ldtruck
     call z, drawsprite24
     pop bc ;get back b from stack
     ld a,b ;check if b=0...
     cp 0
-    jp nz, carloopiterate ;...and loop if not
+    jr nz, loopnextupdate ;...and loop if not
+endupdateloop:
     ret
 
-carloopiterate:
-    ld de, bytespervehicle ;get number of bytes in each vehicles data
+loopnextupdate:
+    ld de,BYTES_PER_VEHICLE ;get number of bytes in each vehicles data
     add ix,de ;increase ix by that many bytes, ready to next car
-    jp uppercarsloop
+    ld a,b
+    cp 0
+    jr nz, uppercarsupdateloop
+    jr z, endupdateloop
+
+checktospawncar:
+    call random ;put random number in a
+    ld c,a ;move random value into c 
+    ld a,(currentspawnchance)
+    cp c ;compare with difficulty currentspawnchance
+    call c, spawncarupper ;if a < spawnchance, then spawn
+    ret
+
+spawncarupper:
+    ld b, MAX_VEHICLES
+    ld ix,uppervehicles
+alivecheck:
+    ld a,(ix)
+    cp 0
+    jr z, spawnit
+    ld de, BYTES_PER_VEHICLE
+    add ix,de
+    djnz alivecheck
+    ret
+spawnit:
+    ld a,1
+    ld (ix),a ; set isalive to 1 for this car
+    call random ;set a to random number
+    and TOTAL_VEHICLE_TYPES
+    ld (ix+2),a ;set random vehicle TOTAL_VEHICLE_TYPES
+    call random ;set a to rand number
+    ld a, UPPER_LANE_X
+    ld (ix+3), a ;set pos x to correct position
+    call random
+    ;add a, UPPER_LANE_Y ; add the upperlane y base point
+    ld (ix+4),a ;set pos y
+    ret
+
+
+ldbike:
+    ld hl,pushbike8
+    ret
+
+ldmotorbike:
+    ld hl,motorbike
+    ret
+
+ldtruck:
+    ld hl,truck
     ret
 ;draw a 8x8 sprite.
 ;inputs: 
 ;   BC=sprite xy (bytes x scanlines / basically pixel x pixel)
 ;   HL=sprite graphic data
 drawsprite8:
+    
     call yx2pix ;takes position data from BC, returns screen mem address in DE
     ld b, 8 ;total lines count (ie. 8x8 sprite) - my routines so far only handle equal square sprites
 drawlines8:
@@ -118,6 +189,7 @@ drawlines8:
 ;   BC=sprite xy (bytes x scanlines / basically pixel x pixel)
 ;   HL=sprite graphic data
 drawsprite16:
+    
     call yx2pix ;takes position data from BC, returns screen mem address in DE
     ld b, 16 ;total lines count (ie. 8x8 sprite) - my routines so far only handle equal square sprites
 drawlines16:
@@ -138,6 +210,7 @@ drawlines16:
 ;   BC=sprite xy (bytes x scanlines / basically pixel x pixel)
 ;   HL=sprite graphic data
 drawsprite24:
+    
     call yx2pix ;takes position data from BC, returns screen mem address in DE
     ld b, 24 ;total lines count (ie. 8x8 sprite) - my routines so far only handle equal square sprites
 drawlines24:
@@ -200,7 +273,26 @@ nextlinedown:
 	ld d,a
 	ret
 
-upperlanex  db 0
-upperlaney  db 50
+; Simple pseudo-random number generator.
+; Steps a pointer through the ROM (held in seed), returning
+; the contents of the byte at that location.
+;inputs: none
+;outputs: a = random number
+random: 
+    ld hl,(seed) ; Pointer
+    ld a,h
+    and 31 ; keep it within first 8k of ROM.
+    ld h,a
+    ld a,(hl) ; Get "random" number from location.
+    inc hl ; Increment pointer.
+    ld (seed),hl
+    ret
+seed defw 0
+
+
+
+currentspawnchance  db 1
+UPPER_LANE_X  EQU 0
+UPPER_LANE_Y  EQU 50
 include "vehicles.asm"
 end ENTRY_POINT

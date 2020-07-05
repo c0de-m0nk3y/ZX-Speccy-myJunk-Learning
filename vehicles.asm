@@ -1,5 +1,6 @@
 ; things i want to learn:
 ; how to work at bits (cp, ld etc for bools for example isalive)
+; figure exactly why xy is backwards. (Are bytes in pairs store backwards?)
 
 
 
@@ -8,23 +9,25 @@
 ; 5 bytes per element
 ; byte 0: 0=dead, otherwise alive
 ; byte 1: speed
-; byte 2: sprite index (0=pushbike;1=motorbike;2=car;3=lorry4=ambulance)
+; byte 2: sprite index (0=pushbike;1=motorbike;2=truck)
 ; byte 3: x
 ; byte 4: y (offset from lane-spawn point)
 uppervehicles:
     db 0, 5, 0, 0, 0
-    db 0, 5, 0, 0, 0
-    db 0, 5, 0, 0, 0
-    db 0, 5, 0, 0, 0
-    db 0, 5, 0, 0, 0
+    db 0, 25, 0, 0, 0
+    db 0, 50, 0, 0, 0
+    db 0, 100, 0, 0, 0
+    db 0, 150, 0, 0, 0
 lowervehicles:
     db 0, 5, 0, 0, 0
     db 0, 5, 0, 0, 0
     db 0, 5, 0, 0, 0
     db 0, 5, 0, 0, 0
     db 0, 5, 0, 0, 0
-maxvehicles EQU 4
-bytespervehicle EQU 5
+
+TOTAL_VEHICLE_TYPES EQU 2 ;one less to make random number easier
+MAX_VEHICLES EQU 5
+BYTES_PER_VEHICLE EQU 5
 
 
 
