@@ -25,7 +25,7 @@ lowervehicles:
     db 0, 5, 0, 0, 0
     db 0, 5, 0, 0, 0
 
-TOTAL_VEHICLE_TYPES EQU 2 ;one less to make random number easier
+TOTAL_VEHICLE_TYPES EQU %00000011 ;one less to make random number easier
 MAX_VEHICLES EQU 5
 BYTES_PER_VEHICLE EQU 5
 

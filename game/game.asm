@@ -53,9 +53,14 @@ ENTRY_POINT EQU 32768
 main
     halt
     call deletesprites
+    ;call sloppyclearscreen
     call update
     ;call debug
     jp main
+
+sloppyclearscreen:
+    call 0xdaf ;clear screen + open ch2
+    ret
 
 debug:
     call random
@@ -66,23 +71,83 @@ start:
     call 0xdaf ;clear screen + open ch2
     ld a,3 ;choose border colour code
     call 0x229b ;sets border colour to a
+    ret
 
 ;just deletes everything, no need to worry about screen memory layout
 deletesprites:
-    ld bc,6144 ; 32 bytes * 192 scan lines
+    ;delete upper cars
+    ld ix,uppervehicles
+    ld b, MAX_VEHICLES
+delcarsupperloop:
+    push bc
+    ld a,(ix)
+    cp 0
+    jr z,skipcarupper
+    ld b,(ix+4)
+    ld c,(ix+3)
+    call yx2pix
+    ld a,(ix+2)
+    cp 0 ;pushbike
+    call z, delsprite8
+    cp 1 ;motorbike
+    call z, delsprite16
+    cp 2 ;truck
+    call z, delsprite24
+skipcarupper:
+    pop bc
+    djnz delcarsupperloop
+    ret
+
+delsprite8:
+    push bc
+    ld b, 8
+del8loop:
+    push af
     xor a
-    ld ix,16384 ;the address of the start of screen memory.
-delloop:
-    ld (ix),a
-    inc ix
-    dec bc
-    cp b ; is be 0?
-    ret z
-    jp delloop
+    ld (de),a
+    call nextlinedown
+    djnz del8loop
+    pop af
+    pop bc
+    ret
+
+delsprite16:
+    push bc
+    ld b, 16
+del16loop:
+    push af
+    xor a
+    ld (de),a
+    inc e ;repeat because 2 bytes width
+    ld (de),a
+    dec e
+    call nextlinedown
+    djnz del16loop
+    pop af
+    pop bc
+    ret
+
+delsprite24:
+    push bc
+    ld b, 24
+del24loop:
+    push af
+    xor a
+    ld (de),a
+    inc e ;repeat because 2 bytes width
+    ld (de),a
+    inc e ; repeat for the 3rd byte across
+    ld (de),a
+    dec e
+    dec e
+    call nextlinedown
+    djnz del16loop
+    pop af
+    pop bc
     ret
 
 update:
-    ;update cars
+    ;update upper cars
     ld ix,uppervehicles
     ld b,MAX_VEHICLES
 uppercarsupdateloop:
@@ -242,7 +307,7 @@ drawlines24:
 random: 
     ld hl,(seed) ; Pointer
     ld a,h
-    and 31 ; keep it within first 8k of ROM.
+    and %00011111 ; keep it within first 8k of ROM.
     ld h,a
     ld a,(hl) ; Get "random" number from location.
     inc hl ; Increment pointer.
