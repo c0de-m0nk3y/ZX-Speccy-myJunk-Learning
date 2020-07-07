@@ -50,21 +50,13 @@ ENTRY_POINT EQU 32768
 ;initialization of app:
     call start
 
+
+
 main
     halt
     call deletesprites
-    ;call sloppyclearscreen
     call update
-    ;call debug
     jp main
-
-sloppyclearscreen:
-    call 0xdaf ;clear screen + open ch2
-    ret
-
-debug:
-    call random
-    rst 16
 
 start:
     ;init screen
@@ -72,20 +64,20 @@ start:
     ld a,3 ;choose border colour code
     call 0x229b ;sets border colour to a
     ret
-
-;just deletes everything, no need to worry about screen memory layout
+    
+;delete sprites, before moving and drawing it again
 deletesprites:
     ;delete upper cars
     ld ix,uppervehicles
     ld b, MAX_VEHICLES
 delcarsupperloop:
-    push bc
     ld a,(ix)
     cp 0
-    jr z,skipcarupper
+    jr z,nextcar
+    push bc
     ld b,(ix+4)
     ld c,(ix+3)
-    call yx2pix
+    call yx2pix ;convert yx (in bc) to screen mem address (in de)
     ld a,(ix+2)
     cp 0 ;pushbike
     call z, delsprite8
@@ -93,57 +85,50 @@ delcarsupperloop:
     call z, delsprite16
     cp 2 ;truck
     call z, delsprite24
-skipcarupper:
     pop bc
+    ld a,b
+    cp 0
+    call nz, ixincrementnextvehicle
+nextcar:
     djnz delcarsupperloop
     ret
 
+ixincrementnextvehicle:
+    ld de,BYTES_PER_VEHICLE ;get number of bytes in each vehicles data
+    add ix,de ;increase ix by that many bytes, ready to next car
+    ret
+
 delsprite8:
-    push bc
     ld b, 8
 del8loop:
-    push af
-    xor a
-    ld (de),a
-    call nextlinedown
-    djnz del8loop
-    pop af
-    pop bc
+        xor a
+        ld (de),a
+        call nextlinedown
+        djnz del8loop
     ret
 
 delsprite16:
-    push bc
     ld b, 16
 del16loop:
-    push af
-    xor a
-    ld (de),a
-    inc e ;repeat because 2 bytes width
-    ld (de),a
-    dec e
-    call nextlinedown
-    djnz del16loop
-    pop af
-    pop bc
+        xor a
+        ld (de),a
+        inc e ;repeat because 2 bytes width
+        ld (de),a
+        dec e
+        call nextlinedown
+        djnz del16loop
     ret
 
 delsprite24:
-    push bc
     ld b, 24
 del24loop:
-    push af
-    xor a
-    ld (de),a
-    inc e ;repeat because 2 bytes width
-    ld (de),a
-    inc e ; repeat for the 3rd byte across
-    ld (de),a
-    dec e
-    dec e
-    call nextlinedown
-    djnz del16loop
-    pop af
-    pop bc
+        xor a
+        ld (de),a
+        inc e ;repeat because 2 bytes width
+        ld (de),a
+        dec e
+        call nextlinedown
+        djnz del24loop
     ret
 
 update:
@@ -154,9 +139,10 @@ uppercarsupdateloop:
     dec b
     ld a,(ix) ;check 'isAlive'
     cp 0
-    
     call z,checktospawncar ;if=0, check to see if random decides to spawn car
-    jr z,loopnextupdate ;if=0, jp to next car
+    ld a,(ix) ;check 'isAlive'
+    cp 0
+    call z,ixincrementnextvehicle ;if=0, jp to next car
     push bc ;save b to stack
     ld a,(ix+3) ;get pos x into a
     add a,(ix+1) ;apply speed to it
@@ -176,17 +162,11 @@ uppercarsupdateloop:
     pop bc ;get back b from stack
     ld a,b ;check if b=0...
     cp 0
-    jr nz, loopnextupdate ;...and loop if not
+    call nz, ixincrementnextvehicle
+    jp nz, uppercarsupdateloop ;...and loop if not
 endupdateloop:
     ret
 
-loopnextupdate:
-    ld de,BYTES_PER_VEHICLE ;get number of bytes in each vehicles data
-    add ix,de ;increase ix by that many bytes, ready to next car
-    ld a,b
-    cp 0
-    jr nz, uppercarsupdateloop
-    jr z, endupdateloop
 
 checktospawncar:
     call random ;put random number in a
@@ -212,7 +192,7 @@ spawnit:
     ld (ix),a ; set isalive to 1 for this car
     call random ;set a to random number
     and TOTAL_VEHICLE_TYPES
-    ld (ix+2),a ;set random vehicle TOTAL_VEHICLE_TYPES
+    ld (ix+2),a ;set random vehicle type
     call random ;set a to rand number
     ld a, UPPER_LANE_X
     ld (ix+3), a ;set pos x to correct position
@@ -254,7 +234,6 @@ drawlines8:
 ;   BC=sprite xy (bytes x scanlines / basically pixel x pixel)
 ;   HL=sprite graphic data
 drawsprite16:
-    
     call yx2pix ;takes position data from BC, returns screen mem address in DE
     ld b, 16 ;total lines count (ie. 8x8 sprite) - my routines so far only handle equal square sprites
 drawlines16:
@@ -275,7 +254,6 @@ drawlines16:
 ;   BC=sprite xy (bytes x scanlines / basically pixel x pixel)
 ;   HL=sprite graphic data
 drawsprite24:
-    
     call yx2pix ;takes position data from BC, returns screen mem address in DE
     ld b, 24 ;total lines count (ie. 8x8 sprite) - my routines so far only handle equal square sprites
 drawlines24:

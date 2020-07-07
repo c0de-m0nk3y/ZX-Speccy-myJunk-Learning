@@ -13,11 +13,11 @@
 ; byte 3: x
 ; byte 4: y (offset from lane-spawn point)
 uppervehicles:
-    db 0, 5, 0, 0, 0
-    db 0, 25, 0, 0, 0
-    db 0, 50, 0, 0, 0
-    db 0, 100, 0, 0, 0
-    db 0, 150, 0, 0, 0
+    db 0, 1, 0, 0, 0
+    db 0, 1, 0, 0, 0
+    db 0, 1, 0, 0, 0
+    db 0, 1, 0, 0, 0
+    db 0, 1, 0, 0, 0
 lowervehicles:
     db 0, 5, 0, 0, 0
     db 0, 5, 0, 0, 0
@@ -26,7 +26,7 @@ lowervehicles:
     db 0, 5, 0, 0, 0
 
 TOTAL_VEHICLE_TYPES EQU %00000011 ;one less to make random number easier
-MAX_VEHICLES EQU 5
+MAX_VEHICLES EQU 0
 BYTES_PER_VEHICLE EQU 5
 
 
