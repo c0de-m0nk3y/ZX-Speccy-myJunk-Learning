@@ -1,8 +1,8 @@
 ;screen tools
 ; yz2pix = converts position yx to pixel memory location
 
-yx2pix:		;don't worry about how this works yet! just arrive with arrive with H=y 0-192, L=x 0-255
-	ld a,b	;return with DE at corresponding place on the screen
+yx2pix:		;arrive with arrive with H=y 0-192, L=x 0-255
+	ld a,b	
 	rra
 	rra
 	rra
