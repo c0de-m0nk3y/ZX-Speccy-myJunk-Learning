@@ -19,18 +19,33 @@ main:
     halt
     ld ix,playerdata ;ix points at player properties
     call deletesprite
-    call applygravity
+    call moveright
     ld hl,crappyfish ;hl points at crappyfish bitmap data
-    ld ix,playerdata ;ix points at player properties
     call drawsprite ;draw player
+
+    ld ix,d1
+    call deletesprite
+    call moveright
+    ld hl,car1
+    call drawsprite
+
     jp main
 
-applygravity:
+;handle movement
+;inputs:
+;IX=properties of object to move
+movedown:
     ld a,(ix+2) ;load ypos to a
     cp MAX_Y
-    ret z ;;<-- TODO: GAME OVER HERE
-    add a,GRAVITY ;add speed
+    ret z 
+    add a,MOVE_SPEED ;add speed
     ld (ix+2),a ;set new ypos value
+    ret
+
+moveright:
+    ld a,(ix+1) ;load xpos to a
+    add a,MOVE_SPEED ;add speed
+    ld (ix+1),a ;set new xpos value
     ret
 
 ;deletes a sprite
@@ -87,15 +102,21 @@ spritedrawshiftbackloop:
     djnz spritedrawlinesloop ;loop back if not 0
     ret
 
-;player data as follows:
-;isAlive,x,y,sizex (bytes),sizey (cells)
+;data format:
+;isAlive,x,y,sizex (cells),sizey (lines)
 playerdata  db 1,85,50,4,32
 
-GRAVITY equ 1
+d1  db 1,0,85,3,24
+d2  db 1,0,64,3,24
+d3  db 1,0,100,3,24
+d4  db 1,0,132,3,24
+d5  db 1,0,172,3,24
+
 MOVE_SPEED equ 1
 MAX_Y equ 192-32
 
-include "sprites.asm"
-include "screentools.asm"
+include "sprites/car1.asm"
+include "sprites/sprites.asm"
+include "util/screentools.asm"
 
     end ENTRY_POINT
