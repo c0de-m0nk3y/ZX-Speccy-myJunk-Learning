@@ -17,16 +17,20 @@ ENTRY_POINT equ 32768
     call 0x229b ;set border color with chosen value
 main:
     halt
+    ld hl,fsprite
+    ld ix,playerdata ;pass playerdata address to ix
     call drawplayer
     jp main
 
-
+;inputs:
+;HL=sprite bitmap
+;IX=properties
 drawplayer:
-    ld ix,playerdata ;pass playerdata address to ix
-    ld h,(ix+2) ;H=ypos
-    ld l,(ix+1) ;L=xpos
+    
+    ld b,(ix+2) ;H=ypos
+    ld c,(ix+1) ;L=xpos
     call yx2pix ;DE=screen mem address for yx
-    ld hl,fsprite ; point HL at crappyfish spritedata
+    ; ld hl,fsprite ; point HL at crappyfish spritedata
     ld b,(ix+4) ;load b with number of lines in sprite (sizey)
     dec b
 playerdrawlinesloop:
