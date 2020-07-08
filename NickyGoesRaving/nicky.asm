@@ -18,23 +18,22 @@ ENTRY_POINT equ 32768
 main:
     halt
 
-    ;loop all enemies and update them
-    ld b,MAX_CARS
-    ld ix, carsdata
+    ;loop all upper cars and update them
+    ld b,UP_CARS_MAX
+    ld ix, up_carsdata
     call delcarsloop
-    ld b,MAX_CARS    
-    ld ix, carsdata
+    ld b,UP_CARS_MAX    
+    ld ix, up_carsdata
     call movecarsloop
-    ld b,MAX_CARS
-    ld ix, carsdata
+    ld b,UP_CARS_MAX
+    ld ix, up_carsdata
     ld hl,saloon_r.asm ;todo: come up with a way to make car variant random
     call drawcarsloop
 
     ;update player
     ld ix,playerdata ;ix points at player properties
     call deletesprite
-    call movedown
-    ld hl,nickysprite ;hl points at sprite bitmap data
+    ld hl,idle_nohat ;hl points at sprite bitmap data
     call drawsprite ;draw player
 
     jp main
@@ -47,7 +46,7 @@ movecarsloop:
     ld a,(ix);
     cp 1 ;if IX==1...do move
     call z, domove 
-    ld de,CARSDATA_LENGTH
+    ld de,UP_CARSDATA_LENGTH
     add ix,de
     djnz movecarsloop
     ret
@@ -63,7 +62,7 @@ delcarsloop:
     ld a,(ix) ;A=car[i].isAlive?
     cp 1; compare 1 (is alive)
     call z, dodelete
-    ld de,CARSDATA_LENGTH
+    ld de,UP_CARSDATA_LENGTH
     add ix,de   
     djnz delcarsloop
     ret
@@ -81,7 +80,7 @@ drawcarsloop:
     ld a,(ix) ;A=car[i].isAlive?
     cp 1; compare 1 (is alive)
     call z, dodraw
-    ld de,CARSDATA_LENGTH
+    ld de,UP_CARSDATA_LENGTH
     add ix,de
     djnz drawcarsloop
     ret
@@ -107,7 +106,7 @@ movedown:
     ret
 moveright:
     ld a,(ix+1) ;load xpos to a
-    add a,MOVE_SPEED ;add speed
+    add a,(ix+6) ;add speed
     ld (ix+1),a ;set new xpos value
     ret
 
@@ -115,24 +114,33 @@ moveright:
 
 
 ;
-;data format:
+;player data format:
 ;isAlive,x,y,sizex (cells),sizey (lines)
-playerdata  db 1,85,50,4,48
+playerdata  db 1,0,0,3,24
 
-MAX_CARS equ 5
 
-CARSDATA_LENGTH equ 5
-carsdata
-    db 1,0,128,3,16
-    db 1,0,32,3,16
-    db 1,0,96,3,16
-    db 1,0,0,3,16
-    db 1,0,64,3,16
+;
+UP_CARS_MAX equ 5
+UP_CARSDATA_LENGTH equ 7
+;player data format:
+;isAlive
+;x
+;y
+;sizex (cells)
+;sizey (lines)
+;variant(0=bike,1=car,2=lorry)
+;speed
+up_carsdata
+    db 1,0,25,3,16,1,2
+    db 1,0,50,3,16,1,4
+    db 1,0,75,3,16,1,2
+    db 0,0,80,3,16,1,2
+    db 0,0,100,3,16,1,2
     
 
 
 MOVE_SPEED equ 4
-MAX_Y equ 192-50
+MAX_Y equ 192-75
 
 include "sprites/cars/saloon_r.asm"
 include "sprites/player/nickysprite.asm"
