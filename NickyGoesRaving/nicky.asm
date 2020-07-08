@@ -16,6 +16,7 @@ ENTRY_POINT equ 32768
     xor a ;set 0 to zero (border color choice)
     call 0x229b ;set border color with chosen value
 main:
+    halt
     ; ;this is a test car:
     ; ld ix,carsdata ;ix points at player properties
     ; call deletesprite
@@ -27,7 +28,6 @@ main:
     ld b,MAX_CARS
     ld ix, carsdata
     call delcarsloop
-    halt
     ld b,MAX_CARS    
     ld ix, carsdata
     call movecarsloop
@@ -93,7 +93,9 @@ drawcarsloop:
     ret
 dodraw:
     push bc
+    push hl
     call drawsprite
+    pop hl
     pop bc
     ret
 
@@ -123,15 +125,15 @@ moveright:
 ;isAlive,x,y,sizex (cells),sizey (lines)
 playerdata  db 1,85,50,4,48
 
-MAX_CARS equ 4
+MAX_CARS equ 5
 
 CARSDATA_LENGTH equ 5
 carsdata
+    db 1,0,128,3,24
+    db 0,0,0,3,24
+    db 0,0,0,3,24
     db 1,0,0,3,24
-    db 0,0,0,3,24
-    db 0,0,0,3,24
-    db 0,0,0,3,24
-    db 0,0,0,3,24
+    db 1,0,64,3,24
     
 
 
