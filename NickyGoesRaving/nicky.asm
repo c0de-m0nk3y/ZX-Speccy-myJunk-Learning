@@ -16,7 +16,26 @@ ENTRY_POINT equ 32768
     xor a ;set 0 to zero (border color choice)
     call 0x229b ;set border color with chosen value
 main:
+    ; ;this is a test car:
+    ; ld ix,carsdata ;ix points at player properties
+    ; call deletesprite
+    ; call movedown
+    ; ld hl,car1 ;hl points at sprite bitmap data
+    ; call drawsprite ;draw player
+
+    ;loop all enemies and update them
+    ld b,MAX_CARS
+    ld ix, carsdata
+    call delcarsloop
     halt
+    ld b,MAX_CARS    
+    ld ix, carsdata
+    call movecarsloop
+    ld b,MAX_CARS
+    ld ix, carsdata
+    ld hl,car1
+    call drawcarsloop
+
     ;update player
     ld ix,playerdata ;ix points at player properties
     call deletesprite
@@ -24,75 +43,58 @@ main:
     ld hl,nickysprite ;hl points at sprite bitmap data
     call drawsprite ;draw player
 
-    ;loop all enemies and update them
-    ld b,MAX_CARS
-    ld iy, carsdata
-    ;call delcarsloop
-    ;call movecarsloop
-    ld hl,car1
-    call drawcarsloop
-
-
     jp main
 
 ;loops through all cars and calls moveright on them, if alive
 ;inputs
 ;B= max cars (reducing iterator)
-;IY=cars data pointer
+;IX=cars data pointer
 movecarsloop:
-    ld a,(iy) ;A=car[i].isAlive?
-    cp 1; compare 1 (is alive)
-    call z, domove
+    ld a,(ix);
+    cp 1 ;if IX==1...do move
+    call z, domove 
     ld de,CARSDATA_LENGTH
-    add iy,de
+    add ix,de
     djnz movecarsloop
     ret
 domove:
-    ld d,iyh
-    ld e,iyl
-    ld ixh,d
-    ld ixl,e
     call moveright
     ret
 
 ;loops through all cars and calls deletesprite on them, if alive
 ;inputs
 ;B= max cars (reducing iterator)
-;IY=cars data pointer
+;IX=cars data pointer
 delcarsloop:
-    ld a,(iy) ;A=car[i].isAlive?
+    ld a,(ix) ;A=car[i].isAlive?
     cp 1; compare 1 (is alive)
     call z, dodelete
     ld de,CARSDATA_LENGTH
-    add iy,de
+    add ix,de   
     djnz delcarsloop
     ret
 dodelete:
-    ld d,iyh
-    ld e,iyl
-    ld ixh,d
-    ld ixl,e
+    push bc
     call deletesprite
+    pop bc
     ret
 
 ;loops through all cars and calls drawsprite on them, if alive
 ;inputs
 ;B= max cars (reducing iterator)
-;IY=cars data pointer
+;IX=cars data pointer
 drawcarsloop:
-    ld a,(iy) ;A=car[i].isAlive?
+    ld a,(ix) ;A=car[i].isAlive?
     cp 1; compare 1 (is alive)
     call z, dodraw
     ld de,CARSDATA_LENGTH
-    add iy,de
+    add ix,de
     djnz drawcarsloop
     ret
 dodraw:
-    ld d,iyh
-    ld e,iyl
-    ld ixh,d
-    ld ixl,e
+    push bc
     call drawsprite
+    pop bc
     ret
 
 
@@ -121,20 +123,16 @@ moveright:
 ;isAlive,x,y,sizex (cells),sizey (lines)
 playerdata  db 1,85,50,4,48
 
-MAX_CARS equ 10
+MAX_CARS equ 4
 
 CARSDATA_LENGTH equ 5
 carsdata
-    db 0,0,0,4,32
-    db 0,0,0,4,32
-    db 1,20,20,3,24
-    db 0,0,0,4,32
-    db 0,0,0,4,32
-    db 0,0,0,4,32
-    db 0,0,0,4,32
-    db 0,0,0,4,32
-    db 0,0,0,4,32
-    db 0,0,0,4,32
+    db 1,0,0,3,24
+    db 0,0,0,3,24
+    db 0,0,0,3,24
+    db 0,0,0,3,24
+    db 0,0,0,3,24
+    
 
 
 MOVE_SPEED equ 1
