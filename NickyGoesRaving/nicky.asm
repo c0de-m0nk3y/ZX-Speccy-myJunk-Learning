@@ -17,12 +17,6 @@ ENTRY_POINT equ 32768
     call 0x229b ;set border color with chosen value
 main:
     halt
-    ; ;this is a test car:
-    ; ld ix,carsdata ;ix points at player properties
-    ; call deletesprite
-    ; call movedown
-    ; ld hl,car1 ;hl points at sprite bitmap data
-    ; call drawsprite ;draw player
 
     ;loop all enemies and update them
     ld b,MAX_CARS
@@ -33,7 +27,7 @@ main:
     call movecarsloop
     ld b,MAX_CARS
     ld ix, carsdata
-    ld hl,car1
+    ld hl,saloon_r.asm ;todo: come up with a way to make car variant random
     call drawcarsloop
 
     ;update player
@@ -107,7 +101,7 @@ dodraw:
 movedown:
     ld a,(ix+2) ;load ypos to a
     cp MAX_Y
-    ret z 
+    ret nc 
     add a,MOVE_SPEED ;add speed
     ld (ix+2),a ;set new ypos value
     ret
@@ -129,20 +123,19 @@ MAX_CARS equ 5
 
 CARSDATA_LENGTH equ 5
 carsdata
-    db 1,0,128,3,24
-    db 0,0,0,3,24
-    db 0,0,0,3,24
-    db 1,0,0,3,24
-    db 1,0,64,3,24
+    db 1,0,128,3,16
+    db 1,0,32,3,16
+    db 1,0,96,3,16
+    db 1,0,0,3,16
+    db 1,0,64,3,16
     
 
 
-MOVE_SPEED equ 1
-MAX_Y equ 192-48
+MOVE_SPEED equ 4
+MAX_Y equ 192-50
 
-include "sprites/car1.asm"
-include "sprites/nickysprite.asm"
-include "sprites/sprites.asm"
+include "sprites/cars/saloon_r.asm"
+include "sprites/player/nickysprite.asm"
 include "util/screentools.asm"
 include "util/spritetools.asm"
 
