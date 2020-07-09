@@ -1,11 +1,15 @@
-; ASM data file from a ZX-Paintbrush picture with 24 x 24 pixels (= 3 x 3 characters)
+;; ASM data file from a ZX-Paintbrush picture with 24 x 24 pixels (= 3 x 3 characters)
 
-; line based output of pixel data:
+;; line based output of pixel data:
 
-;idle no hat
-;2 frame sequence
-IDLE_FRAMES equ 2 ;frames per sequence (keep it simple! same amount of frames for every possible state)
-NICKY_BYTESPERFRAME equ 24*24 ;just saves calculating at runtime
+;;idle no hat
+;;2 frame sequence
+
+ANIM_FRAME_LENGTH_TIME equ 5
+ANIM_CYCLE_LENGTH equ 1 ;frames per sequence (keep it simple! same amount of frames for every possible state)
+NICKY_BYTESPERFRAME equ (3*24) ;just saves calculating at runtime
+NICKY_BYTES_ALLFRAMES equ (NICKY_BYTESPERFRAME*1)
+
 
 idle_nohat:
 ;frame0
@@ -60,8 +64,6 @@ idle_nohat:
     db %00000000, %11100111, %00000000
 
 ;up no hat
-;2 frame sequence
-UP_FRAMES equ 2
 
 up_nohat:
 ;frame0
@@ -116,8 +118,6 @@ up_nohat:
     db %00000000, %11100000, %00000000
 
 ;down no hat
-;2 frame sequence
-DOWN_FRAMES equ 2
 
 down_nohat:
 ;frame0
@@ -172,8 +172,6 @@ down_nohat:
     db %00000000, %11100000, %00000000
 
 ;idle with hat
-;2 frame sequence
-IDLE_HAT_FRAMES equ 2
 
 idle_hat:
 ;frame0
@@ -228,8 +226,6 @@ idle_hat:
     db %00000000, %11100111, %00000000
 
 ;up with hat
-;2 frame sequence
-UP_HAT_FRAMES equ 2
 
 up_hat:
 ;frame0
@@ -284,8 +280,6 @@ up_hat:
     db %00000000, %11100000, %00000000
 
 ;down with hat
-;2 frame sequence
-DOWN_HAT_FRAMES equ 2
 
 down_hat:
 ;frame0
