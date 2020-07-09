@@ -46,7 +46,7 @@ main:
     ld hl,saloon_l ;todo: come up with a way to make car variant random
     call drawcarsloop
 
-    halt ;third halt. Now running at 17fps !! 
+    ; halt ;third halt. Now running at 17fps !! 
     
     ;delete player
     ld ix,playerdata ;ix points at player properties
@@ -63,6 +63,9 @@ main:
     call addanimationoffset
     ;draw correct frame
     call drawsprite ;draw sprite in HL
+
+    ld iy,shopdata
+    call checkplayerhatshopcollision
     
     ;draw shop (last so it is on top of all sprites)
     ld ix,shopdata
@@ -72,14 +75,9 @@ main:
 
     jp main
 
-; setidlenohat:
-;     ld hl,idle_nohat
-;     ret
-; setidlehat:
-;     ld hl,idle_hat
-;     ret
-
-
+;cycles the anim frame index
+;inputs
+;IX=player
 gonextanimframe:
     ld (ix+9),0 ;animTimer=0 
     ld a,(ix+8) ;get current anim frame
@@ -98,13 +96,13 @@ endgonext:
 ;adds to hl the value for the current anim frame
 addanimationoffset:
     ld a,(ix+8) ;get current anim frame
-    cp 0 
-    ret z
+    cp 0 ;if 0 dont loop at all
+    ret z ;return if =0
     ld b,a ;b=current anim frame
 addoffsetloop:
     ld de,NICKY_BYTESPERFRAME
     add hl,de ;increase hl by bytesperframe
-    djnz addoffsetloop
+    djnz addoffsetloop ;loop until b=0
     ret
 
 
@@ -210,9 +208,11 @@ moveup:
     ret c ;...don't move
     sub (ix+6) ;otherwise subtract speed value from a
     ld (ix+2),a ;set the new value
-    ld a,1 ;load a with 1 (anim code for up)
-    ld (ix+5),a ;set anim state in player data
-    ;;;;
+    ld a,(ix+7) ;get hasHat bool
+    cp 0 ;doesnt have hat
+    call z, setanim1
+    cp 1 ;does have hat
+    call z, setanim4
     ret
 movedown:
     ld a,(ix+2) ;load ypos to a
@@ -220,9 +220,11 @@ movedown:
     ret nc 
     add a,(ix+6) ;add speed
     ld (ix+2),a ;set new ypos value
-    ld a,2 ;load a with (anim code for down)
-    ld (ix+5),a ;set anim state in player data
-    ;;;;
+    ld a,(ix+7) ;get hasHat bool
+    cp 0 ;doesnt have hat
+    call z, setanim2
+    cp 1 ;does have hat
+    call z, setanim5
     ret
 moveleft:
     ld a,(ix+1) ;load xpos to a
@@ -230,8 +232,6 @@ moveleft:
     ret z ;...return
     sub (ix+6) ;otherwise subtract speed value from a
     ld (ix+1),a ;set the new value
-    ; not changing animstate here, but still must call to set bitmap
-    ;;;;
     ret
 moveright:
     ld a,(ix+1) ;load ypos to a
@@ -239,21 +239,35 @@ moveright:
     ret nc 
     add a,(ix+6) ;add speed
     ld (ix+1),a ;set new xpos value
-    ; not changing animstate here, but still must call to set bitmap
-    ;;;;
     ret
 
-
+setanim0:
+    ld (ix+5),0 ;set anim state to 0
+    ret
+setanim1:
+    ld (ix+5),1 ;set anim state to 1
+    ret
+setanim2:
+    ld (ix+5),2 ;set anim state to 2
+    ret
+setanim3:
+    ld (ix+5),3 ;set anim state to 3
+    ret
+setanim4:
+    ld (ix+5),4 ;set anim state to 4
+    ret
+setanim5:
+    ld (ix+5),5 ;set anim state to 5
+    ret   
+setanim6:
+    ld (ix+5),6 ;set anim state to 6
+    ret   
 ;function points HL to the player sprite, depending on which anim state he is in
 ;Inputs:
 ;IX=player
 ;Outputs:
 ;HL=first frame in correct anim sequence.
 setcorrectplayerbitmap:
-    ld a,(ix+7) ;get hat bool into a
-    cp 0 ;compare 0
-    call nz,switchtohatstate ;if !=0 switch to hat sprite (3 higher in index)
-
     ld a,(ix+5) ;ld current animstate key into a
     cp 0 ;is it idle (no hat)?
     ld hl,idle_nohat
@@ -276,32 +290,48 @@ setcorrectplayerbitmap:
     ;; TODO: cp 6 (dancing?)
     ret
 
-;if the anim state is 1-3 (ie. no hat), it adds 3.
-switchtohatstate:
-    ld a,(ix+5);get animstate
-    cp 1 ;if animstate is 1-3 , then add 3 (which gives you the hat version)
-    add a,3
-    cp 2
-    add a,3
-    cp 3
-    add a,3
-    ld (ix+5),a ;set the value
-    ret
+;inputs
+;IX=player
+;IY=hatshop
+;destroys: a, bc, hl 
+checkplayerhatshopcollision:
+    ld a,(ix+1) ;A=player x
+    add a,(ix+3) ;A+=player width
+    ld l,(iy+1) ;L=shop x
+    cp l ;compare A with B
+    ret c ;return if player is past the left side
+    ld a,(ix+1) ;A=player x
+    ld c,(iy+3) ;C=shop width
+    add hl,bc ;add shop width to L
+    cp l ;compare A with L
+    ret nc ;return if player is past the right side
+    ld a,(ix+2) ;A=player y
+    add a,(ix+4) ;A+=player height
+    ld l,(iy+2) ;L=shop y
+    cp l ;compare A with L
+    ret c ;return if player is above the shop y
+    ;if this far, then its a hit...
+    ld (ix+7),1 ;set hat bool to 1
+    call setanim5 ;set anim to down with hat;
+    call setcorrectplayerbitmap ;change the sprite to hatted sprite
 
-;DATA BEGINS
+;
+;
+;
+;; DATA BEGINS
 ; NOTE: Due to the coding for movement .The 'speed' property must be the 7th data byte on all moving objects
 
 ;map-data:
 ;lanes y constants:
-U1 equ 24
-U2 equ 44
-U3 equ 64
-LANE_DIVIDE equ 84
-L1 equ 88
-L2 equ 108
-L3 equ 128
+U1 equ 28
+U2 equ 48
+U3 equ 68
+LANE_DIVIDE equ 88
+L1 equ 92
+L2 equ 116
+L3 equ 136
 MAX_X equ 255-28 ;rightside boundary for player (screenwidth-playerwidth-speed)
-MIN_Y equ 0+8 ;upper boundary (0+speed)
+MIN_Y equ 0+6 ;upper boundary (0+speed)
 MAX_Y equ 192-28 ;bottom boundary for player (screenheight-playerheight-speed)
 
 
@@ -309,6 +339,7 @@ MAX_Y equ 192-28 ;bottom boundary for player (screenheight-playerheight-speed)
 ; if not a moving sprite, bytes 1-5 must be laid out in order.
 
 ;hatshop data:
+;isalive?,x,y,sizex,sizey
 shopdata    db 1,(256/2)-16,192-16,4,16
 
 ;player data format:
@@ -322,7 +353,7 @@ shopdata    db 1,(256/2)-16,192-16,4,16
 ;7 has a hat? (bool) 0=no hat
 ;8 current anim frame
 ;9 animtimer
-playerdata  db 1,120,0,3,24,0,6,0,0,0
+playerdata  db 1,120,0,3,24,0,3,0,0,0
 
 ;;player data format:
 ;isAlive
