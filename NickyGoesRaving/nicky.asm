@@ -8,7 +8,6 @@
     ; fdfe asdfg
     ; fefe shift/z/x/c/v
 
-
 ;NOTE: all player animation states must have exactly 2 frames each
 
 ENTRY_POINT equ 32768
@@ -32,8 +31,10 @@ main:
     ld hl,saloon_r ;todo: come up with a way to make car variant random
     call drawcarsloop
 
-    halt ;second halt instruction, wait until the scanlines finish again before redrawing player (PRO-helps with flicker / CON-game now running @ 25fps)
-    
+    ;second halt instruction, wait until the scanlines finish again before redrawing player
+    ;(PRO-helps with flicker / CON-game now running @ 25fps)
+    halt 
+
     ;loop all lower cars and update them
     ld b,LO_CARS_MAX
     ld ix, lo_carsdata
@@ -46,7 +47,7 @@ main:
     ld hl,saloon_l ;todo: come up with a way to make car variant random
     call drawcarsloop
 
-    ; halt ;third halt. Now running at 17fps !! 
+    halt ;third halt. Now running at 17fps !! 
     
     ;delete player
     ld ix,playerdata ;ix points at player properties
