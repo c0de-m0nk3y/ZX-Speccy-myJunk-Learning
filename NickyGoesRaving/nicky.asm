@@ -322,9 +322,17 @@ checkplayerhatshopcollision:
     ret
 
 ;IX=bg attributes
-;BC=768 (all cells)
+;B=24 (all lines)
 paintcells:
-    
+    ld c,32
+    call paintlinecells
+    djnz paintcells
+    ret
+;C=32 (bytes width)
+paintlinecells:
+    dec c;
+    ld a,c
+    ret nz ; ret if c==0
 
 
 ;this code is specific to the player size 24x24
