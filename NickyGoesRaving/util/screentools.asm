@@ -1,6 +1,12 @@
 ;screen tools
-; yz2pix = converts position yx to pixel memory location
+;zx spectrum  pixel data address:0x4000-0x57ff 
+;attributes address:0x5800-0x5AFF (22528-23295)
 
+; yz2pix = converts position yx to pixel memory location
+;INPUTS:
+;HL=yx position
+;OUTPUTS:
+;DE=screen bitmap memory location
 yx2pix:		;arrive with arrive with H=y 0-192, L=x 0-255
 	ld a,b	
 	rra
@@ -40,8 +46,4 @@ nextlinedown:
 	ld a,d
 	sub 8
 	ld d,a
-	ret
-
-inchl:
-	inc hl
 	ret

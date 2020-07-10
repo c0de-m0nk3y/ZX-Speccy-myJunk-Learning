@@ -14,11 +14,11 @@ ENTRY_POINT equ 32768
     org ENTRY_POINT
 
     call 0xdaf ;clear screen, open ch2
-    xor a ;set 0 to zero (border color choice)
+    ld a,1 ;choose border colour
     call 0x229b ;set border color with chosen value
 main:
     halt ;wait for interrupt (ie. wait until the tv linescan has just completed -happens at 50hz) -locks game to 50fps
-   
+    call paintbgtiles
     ;loop all upper cars and update them
     ld b,UP_CARS_MAX
     ld ix, up_carsdata
@@ -47,12 +47,12 @@ main:
     ld hl,saloon_l ;todo: come up with a way to make car variant random
     call drawcarsloop
 
-    halt ;third halt. Now running at 17fps !! 
+    ; halt ;third halt. game will run @ 17fps !! 
     
     ;delete player
     ld ix,playerdata ;ix points at player properties
     call deletesprite
-
+    ;check keys and move if pressed
     call checkkeys ;checks for WASD and moves player if pressed (also changes players animstate value)
     call setcorrectplayerbitmap ;sets hl to first bitmap in each animstate
     ;cycle animation frames
@@ -65,6 +65,7 @@ main:
     ;draw correct frame
     call drawsprite ;draw sprite in HL
 
+    ;ix is already player data, set iy to shop and check for collision
     ld iy,shopdata
     call checkplayerhatshopcollision
     
@@ -315,6 +316,78 @@ checkplayerhatshopcollision:
     ld (ix+7),1 ;set hat bool to 1
     call setanim5 ;set anim to down with hat;
     call setcorrectplayerbitmap ;change the sprite to hatted sprite
+    ret
+
+;sets colours of screen for background, before any sprites are painted
+;loops all character tiles of the screen in order and paints the road scene
+; NOTE: i've decided to manually go through all lines separately to avoid nested loops. Is this wise?
+paintbgtiles:
+    ld b,32
+    ld c,%00111000 ;white paper, black ink
+    ld hl,22528 ;HL=first byte of attribute memory space
+    call paintbgline ;line 1
+    ld b,32
+    call paintbgline ;2
+    ld b,32
+    call paintbgline ;3
+    ld b,32
+    ld c,%00000111 ;black paper, white ink
+    call paintbgline ;4 all this colour through til line 22
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    call paintbgline 
+    ld b,32
+    ld c,%00111000 ;white paper, black ink
+    call paintbgline ;22
+    ld b,32
+    call paintbgline ;23
+    ld b,32
+    call paintbgline ;24
+    ret
+;paints a line of cells the same colour
+;INPUTS:
+;B=length of line (in bytes)
+;C=desired attribute byte (%FBPPPIII)
+;HL=relevant lines start address in memory
+paintbgline:
+    ld (hl),c ;poke colour into hl
+    inc hl ;increment hl pointer
+    djnz paintbgline ;loop back if !=0
+    ret
+
+
+
 
 ;
 ;
@@ -332,8 +405,8 @@ L1 equ 92
 L2 equ 116
 L3 equ 136
 MAX_X equ 255-28 ;rightside boundary for player (screenwidth-playerwidth-speed)
-MIN_Y equ 0+6 ;upper boundary (0+speed)
-MAX_Y equ 192-28 ;bottom boundary for player (screenheight-playerheight-speed)
+MIN_Y equ 0+4 ;upper boundary (0+speed)
+MAX_Y equ 192-24 ;bottom boundary for player (screenheight-playerheight-speed)
 
 
 ;note: for moving sprites , data bytes 1-7 must be laid out in order as notes
@@ -354,7 +427,7 @@ shopdata    db 1,(256/2)-16,192-16,4,16
 ;7 has a hat? (bool) 0=no hat
 ;8 current anim frame
 ;9 animtimer
-playerdata  db 1,120,0,3,24,0,3,0,0,0
+playerdata  db 1,120,0,3,24,0,4,0,0,0
 
 ;;player data format:
 ;isAlive

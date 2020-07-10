@@ -43,10 +43,14 @@ spritedrawlinesloop:
     push bc ;save lines remaining to stack
     ld b,(ix+3) ;a=width (in bytes)
 spritedrawbytesloop: ;loop if more that 1 byte width for rest of the width
-    ld a, (hl)
-    ld (de),a
+    ld a,d ;load A with D for checking if it passes upper memory
+    cp 0x58 ;if 0x58 it has gone passed bitmap memory
+    jr z, skipdrawjump ;is H==0x58, skip drawing.
+    ld a,(hl) ;take byte from HL pointer
+    ld (de),a ;draw it to screen memory
     inc hl
     inc e
+skipdrawjump: 
     djnz spritedrawbytesloop
     ld b, (ix+3) ; load b with number of bytes width again
 spritedrawshiftbackloop:
@@ -56,3 +60,4 @@ spritedrawshiftbackloop:
     pop bc ;retrieve lines remaining
     djnz spritedrawlinesloop ;loop back if not 0
     ret
+
