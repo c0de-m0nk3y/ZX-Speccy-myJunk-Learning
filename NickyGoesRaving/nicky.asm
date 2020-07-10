@@ -315,7 +315,7 @@ checkplayerhatshopcollision:
     ld l,(iy+2) ;L=shop y
     cp l ;compare A with L
     ret c ;return if player is above the shop y
-    ;if this far, then its a hit...
+    ;if this far, then its a hit....
     ld (ix+7),1 ;set hat bool to 1
     call setanim5 ;set anim to down with hat;
     call setcorrectplayerbitmap ;change the sprite to hatted sprite
