@@ -47,3 +47,22 @@ nextlinedown:
 	sub 8
 	ld d,a
 	ret
+
+;
+;converts position yx to pixel memory location 
+;INPUTS:
+;HL=yx position
+;OUTPUTS:
+;HL=screen attribute memory location (ie. 0x5800 + ((y*32)+x))
+yx2attributes:
+	ld de,0x5800 ;beginning of colour attribute memory
+	ld a,h ;A=y 
+	add a,a ;x2
+	add a,a ;x4 (we needed to divide by 8 to get cell, then multiply by 32, so it is quicker to just x4)
+	ld h,a ;put new value in H
+	srl l ; L/2
+	srl l ; L/4
+	srl l ;	L/8
+	add hl,de
+	ret
+	

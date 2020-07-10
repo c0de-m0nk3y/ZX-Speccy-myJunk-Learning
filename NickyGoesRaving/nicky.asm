@@ -47,7 +47,7 @@ main:
     ld hl,saloon_l ;todo: come up with a way to make car variant random
     call drawcarsloop
 
-    ; halt ;third halt. game will run @ 17fps !! 
+    halt ;third halt. game will run @ 17fps !! 
     
     ;delete player
     ld ix,playerdata ;ix points at player properties
@@ -64,6 +64,7 @@ main:
     call addanimationoffset
     ;draw correct frame
     call drawsprite ;draw sprite in HL
+    
 
     ;ix is already player data, set iy to shop and check for collision
     ld iy,shopdata
@@ -376,8 +377,9 @@ paintbgtiles:
     call paintbgline ;24
     ret
 ;paints a line of cells the same colour
+;LOOP.
 ;INPUTS:
-;B=length of line (in bytes)
+;B=iterator, length of line (in bytes)
 ;C=desired attribute byte (%FBPPPIII)
 ;HL=relevant lines start address in memory
 paintbgline:
@@ -387,6 +389,17 @@ paintbgline:
     ret
 
 
+;colours the player ink
+;IX=player data
+;HL=screen attribute memory address
+colourplayer:
+    ld h,(ix+2) ;H=y
+    ld l,(ix+1) ;L=x
+    call yx2attributes ;change HL to point to attr-mem
+    ld a,(playerink)
+    ld (hl),a
+    ret
+    ;todo , above doesnt work!!!!!!!!! (seems the code runs too slow to perform this)
 
 
 ;
@@ -428,7 +441,7 @@ shopdata    db 1,(256/2)-16,192-16,4,16
 ;8 current anim frame
 ;9 animtimer
 playerdata  db 1,120,0,3,24,0,4,0,0,0
-
+playerink   db %00000100 ;green ink
 ;;player data format:
 ;isAlive
 ;x
