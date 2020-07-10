@@ -47,8 +47,8 @@ main:
     ld hl,saloon_l ;todo: come up with a way to make car variant random
     call drawcarsloop
 
-    halt ;third halt. game will run @ 17fps !! 
     
+    halt ;third halt. game will run @ 17fps !! 
     ;delete player
     ld ix,playerdata ;ix points at player properties
     call deletesprite
@@ -65,6 +65,8 @@ main:
     ;draw correct frame
     call drawsprite ;draw sprite in HL
     
+    
+    call paintplayer
 
     ;ix is already player data, set iy to shop and check for collision
     ld iy,shopdata
@@ -319,80 +321,38 @@ checkplayerhatshopcollision:
     call setcorrectplayerbitmap ;change the sprite to hatted sprite
     ret
 
-;sets colours of screen for background, before any sprites are painted
-;loops all character tiles of the screen in order and paints the road scene
-; NOTE: i've decided to manually go through all lines separately to avoid nested loops. Is this wise?
-paintbgtiles:
-    ld b,32
-    ld c,%00111000 ;white paper, black ink
-    ld hl,22528 ;HL=first byte of attribute memory space
-    call paintbgline ;line 1
-    ld b,32
-    call paintbgline ;2
-    ld b,32
-    call paintbgline ;3
-    ld b,32
-    ld c,%00000111 ;black paper, white ink
-    call paintbgline ;4 all this colour through til line 22
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    call paintbgline 
-    ld b,32
-    ld c,%00111000 ;white paper, black ink
-    call paintbgline ;22
-    ld b,32
-    call paintbgline ;23
-    ld b,32
-    call paintbgline ;24
-    ret
-;paints a line of cells the same colour
-;LOOP.
-;INPUTS:
-;B=iterator, length of line (in bytes)
-;C=desired attribute byte (%FBPPPIII)
-;HL=relevant lines start address in memory
-paintbgline:
-    ld (hl),c ;poke colour into hl
-    inc hl ;increment hl pointer
-    djnz paintbgline ;loop back if !=0
-    ret
+;IX=bg attributes
+;BC=768 (all cells)
+paintcells:
+    
 
+
+;this code is specific to the player size 24x24
+setplayercells:
+    ld a,(ix+1) ;A=x
+    srl a ;A/2
+    srl a ;A/4
+    srl a ;A/8
+    ld (playercellx0),a ;set cell x0
+    inc a
+    ld (playercellx1),a ;x1
+    inc a
+    ld (playercellx2),a ;x2
+    ld a,(ix+2) ;A=y
+    srl a ;A/2
+    srl a ;A/4
+    srl a ;A/8
+    ld (playercelly0),a ;set cell y0
+    inc a
+    ld (playercelly1),a ;y1
+    inc a
+    ld (playercelly2),a ;y2
+    ret
 
 ;colours the player ink
 ;IX=player data
 ;HL=screen attribute memory address
-colourplayer:
+paintplayer:
     ld h,(ix+2) ;H=y
     ld l,(ix+1) ;L=x
     call yx2attributes ;change HL to point to attr-mem
@@ -442,7 +402,15 @@ shopdata    db 1,(256/2)-16,192-16,4,16
 ;9 animtimer
 playerdata  db 1,120,0,3,24,0,4,0,0,0
 playerink   db %00000100 ;green ink
-;;player data format:
+playercellx0 db 0
+playercellx1 db 0
+playercellx2 db 0
+playercelly0 db 0
+playercelly1 db 0
+playercelly2 db 0
+
+
+;;car data format:
 ;isAlive
 ;x
 ;y
