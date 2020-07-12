@@ -83,6 +83,10 @@ main:
     ld c,24 ;total lines of screen characters
     call paintbg
 
+    ld ix,playerdata
+    ld de,22528
+    call paintplayer
+
     jp main
 
 ;
@@ -104,9 +108,24 @@ gonextline
     jr nz, paintbg ;if C!=0, then start loop again
     ret ;otherwise finished.
 
-
-; paintplayer:
-;     ld
+;ix=player
+;de=0x5800
+paintplayer:
+    ld a,(ix+2) ;get player y
+    ld l,a
+    add hl,hl
+    add hl,hl ;HL= player y cell
+    add hl,de ;+= 0x5800
+    ld a,(ix+1) ;get player x
+    rra
+    rra
+    rra ;/8
+    ld e,a
+    ld d,0
+    add hl,de ;+= player x cell
+    ld a,(ix+11) ;get player colour
+    ld (hl),a ;paint the cell
+    ret 
 
 ;cycles the anim frame index
 ;inputs
@@ -391,8 +410,8 @@ shopdata    db 1,(256/2)-16,192-16,4,16,32
 ;8 current anim frame
 ;9 animtimer
 ;10 width (pixels)
-playerdata  db 1,120,0,3,24,0,4,0,0,0,24
-playerink   db %00000100 ;green ink
+;11 colour attribute
+playerdata  db 1,120,0,3,24,0,4,0,0,0,24,4
 
 
 
