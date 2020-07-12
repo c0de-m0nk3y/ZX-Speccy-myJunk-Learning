@@ -90,13 +90,13 @@ main:
     jp main
 
 ;
-;IX=bg attributes
+;DE=bg attributes
 ;HL=0x5800
 ;C=24
 paintbg:
     ld b,32 ;cells per line
 paintlineloop:
-    ld a,(de) ;getcolour from ix
+    ld a,(de) ;getcolour from DE
     ld (hl),a ;place into attr memory
     inc hl ;inc HL pointer
     djnz paintlineloop ;loop til B=0
