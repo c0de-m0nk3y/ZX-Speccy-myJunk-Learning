@@ -18,7 +18,8 @@ ENTRY_POINT equ 32768
     call 0x229b ;set border color with chosen value
 main:
     halt ;wait for interrupt (ie. wait until the tv linescan has just completed -happens at 50hz) -locks game to 50fps
-    call paintbgtiles
+
+   
     ;loop all upper cars and update them
     ld b,UP_CARS_MAX
     ld ix, up_carsdata
@@ -49,6 +50,7 @@ main:
 
     
     halt ;third halt. game will run @ 17fps !! 
+
     ;delete player
     ld ix,playerdata ;ix points at player properties
     call deletesprite
@@ -65,8 +67,6 @@ main:
     ;draw correct frame
     call drawsprite ;draw sprite in HL
     
-    
-    call paintplayer
 
     ;ix is already player data, set iy to shop and check for collision
     ld iy,shopdata
@@ -78,7 +78,35 @@ main:
     ld hl,hatshop
     call drawsprite
 
+    ld de,backgroundattributes
+    ld hl,22528
+    ld c,24 ;total lines of screen characters
+    call paintbg
+
     jp main
+
+;
+;IX=bg attributes
+;HL=0x5800
+;C=24
+paintbg:
+    ld b,32 ;cells per line
+paintlineloop:
+    ld a,(de) ;getcolour from ix
+    ld (hl),a ;place into attr memory
+    inc hl ;inc HL pointer
+    djnz paintlineloop ;loop til B=0
+gonextline
+    inc de ;inc IX pointer to next attribute
+    dec c ;next line in counter
+    ld a,0
+    cp c ;is C==0?
+    jr nz, paintbg ;if C!=0, then start loop again
+    ret ;otherwise finished.
+
+
+; paintplayer:
+;     ld
 
 ;cycles the anim frame index
 ;inputs
@@ -194,9 +222,7 @@ checkkeys:
     push af
     call nc, moveup
     pop af
-    
     ret
-
 
 ;moves object pointed by IX by it own speed property
 ;inputs:
@@ -206,7 +232,7 @@ movecarsideways:
     add a,(ix+6) ;add speed
     ld (ix+1),a ;set new xpos value
     ret
-
+;player movement routines
 moveup:
     ld a,(ix+2) ;load ypos to a
     cp MIN_Y ;if a>=MINY
@@ -246,6 +272,7 @@ moveright:
     ld (ix+1),a ;set new xpos value
     ret
 
+;sets the player animstate variable to chosen value
 setanim0:
     ld (ix+5),0 ;set anim state to 0
     ret
@@ -295,18 +322,18 @@ setcorrectplayerbitmap:
     ;; TODO: cp 6 (dancing?)
     ret
 
-;inputs
+;INPUTS:
 ;IX=player
 ;IY=hatshop
-;destroys: a, bc, hl 
+;DESTROYS: a, bc, hl 
 checkplayerhatshopcollision:
     ld a,(ix+1) ;A=player x
-    add a,(ix+3) ;A+=player width
+    add a,(ix+10) ;A=players right edge
     ld l,(iy+1) ;L=shop x
     cp l ;compare A with B
     ret c ;return if player is past the left side
     ld a,(ix+1) ;A=player x
-    ld c,(iy+3) ;C=shop width
+    ld c,(iy+5) ;C=shop width
     add hl,bc ;add shop width to L
     cp l ;compare A with L
     ret nc ;return if player is past the right side
@@ -320,54 +347,9 @@ checkplayerhatshopcollision:
     call setanim5 ;set anim to down with hat;
     call setcorrectplayerbitmap ;change the sprite to hatted sprite
     ret
-
-;IX=bg attributes
-;B=24 (all lines)
-paintcells:
-    ld c,32
-    call paintlinecells
-    djnz paintcells
-    ret
-;C=32 (bytes width)
-paintlinecells:
-    dec c;
-    ld a,c
-    ret nz ; ret if c==0
-
-
-;this code is specific to the player size 24x24
-setplayercells:
-    ld a,(ix+1) ;A=x
-    srl a ;A/2
-    srl a ;A/4
-    srl a ;A/8
-    ld (playercellx0),a ;set cell x0
-    inc a
-    ld (playercellx1),a ;x1
-    inc a
-    ld (playercellx2),a ;x2
-    ld a,(ix+2) ;A=y
-    srl a ;A/2
-    srl a ;A/4
-    srl a ;A/8
-    ld (playercelly0),a ;set cell y0
-    inc a
-    ld (playercelly1),a ;y1
-    inc a
-    ld (playercelly2),a ;y2
-    ret
-
-;colours the player ink
-;IX=player data
-;HL=screen attribute memory address
-paintplayer:
-    ld h,(ix+2) ;H=y
-    ld l,(ix+1) ;L=x
-    call yx2attributes ;change HL to point to attr-mem
-    ld a,(playerink)
-    ld (hl),a
-    ret
-    ;todo , above doesnt work!!!!!!!!! (seems the code runs too slow to perform this)
+;
+;
+;
 
 
 ;
@@ -394,8 +376,8 @@ MAX_Y equ 192-24 ;bottom boundary for player (screenheight-playerheight-speed)
 ; if not a moving sprite, bytes 1-5 must be laid out in order.
 
 ;hatshop data:
-;isalive?,x,y,sizex,sizey
-shopdata    db 1,(256/2)-16,192-16,4,16
+;isalive?,x,y,sizex,sizey,width (pixels)
+shopdata    db 1,(256/2)-16,192-16,4,16,32
 
 ;player data format:
 ;0 isAlive (bool) 1=alive
@@ -408,14 +390,10 @@ shopdata    db 1,(256/2)-16,192-16,4,16
 ;7 has a hat? (bool) 0=no hat
 ;8 current anim frame
 ;9 animtimer
-playerdata  db 1,120,0,3,24,0,4,0,0,0
+;10 width (pixels)
+playerdata  db 1,120,0,3,24,0,4,0,0,0,24
 playerink   db %00000100 ;green ink
-playercellx0 db 0
-playercellx1 db 0
-playercellx2 db 0
-playercelly0 db 0
-playercelly1 db 0
-playercelly2 db 0
+
 
 
 ;;car data format:

@@ -22,7 +22,7 @@ hatshop:
     db %10100010, %10010001, %00011110, %10101000
     db %10000000, %00000000, %00000000, %00110000
 
-;8x8 colour attribute data (only changes each line) 
+;8x8 colour attribute data (all lines are just one colour each, therefore only 24 bytes of data needed to describe the background)
 backgroundattributes:
     db %00111000 ;white paper,black ink
     db %00111000 ;white paper,black ink
@@ -48,4 +48,3 @@ backgroundattributes:
     db %00111000 ;white paper,black ink
     db %00111000 ;white paper,black ink
     db %00111000 ;white paper,black ink
-    
