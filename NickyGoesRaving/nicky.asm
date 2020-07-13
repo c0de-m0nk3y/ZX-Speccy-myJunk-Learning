@@ -14,27 +14,35 @@ ENTRY_POINT equ 32768
     org ENTRY_POINT
 
     call 0xdaf ;clear screen, open ch2
-    ld a,1 ;choose border colour
+    ld a,(bordercolour) ;choose border colour
     call 0x229b ;set border color with chosen value
 main:
-    halt ;wait for interrupt (ie. wait until the tv linescan has just completed -happens at 50hz) -locks game to 50fps
 
-   
-    ;loop all upper cars and update them
-    ld b,UP_CARS_MAX
-    ld ix, up_carsdata
-    call delcarsloop
-    ld b,UP_CARS_MAX    
-    ld ix, up_carsdata
-    call movecarsloop
-    ld b,UP_CARS_MAX
-    ld ix, up_carsdata
-    ld hl,saloon_r ;todo: come up with a way to make car variant random
-    call drawcarsloop
 
-    ;second halt instruction, wait until the scanlines finish again before redrawing player
+    ;wait for interrupt (ie. wait until the final tv linescan has 
+    ;just completed -happens at 50hz) -locks game to 50fps
+    halt ;halt x1
+
+    call checktospawnupper ;spawn car after set conditions are met
+
+
+    ;second halt instruction, wait until the scanlines finish again 
+    ;before redrawing player
     ;(PRO-helps with flicker / CON-game now running @ 25fps)
-    halt 
+    halt ;halt x2 
+
+    ;update loop for car array (upper):
+    ld b,UP_CARS_MAX ;how many maximum cars can we have?
+    ld ix, up_carsdata ;IX= first car's data in array 
+    call delcarsloop ;routine that deletes previous frames sprite off screen
+    ld b,UP_CARS_MAX ;B=max cars again.    
+    ld ix, up_carsdata ;IX=first car again  
+    call movecarsloop ;routine to move the cars
+    ld b,UP_CARS_MAX ;B=max cars again
+    ld ix, up_carsdata ;IX=car data again
+    ld hl,saloon_r ;HL=sprite bitmap ;;;;todo: come up with a way to make car variant random
+    call drawcarsloop ;draws the cars
+
 
     ;loop all lower cars and update them
     ld b,LO_CARS_MAX
@@ -47,9 +55,8 @@ main:
     ld ix, lo_carsdata
     ld hl,saloon_l ;todo: come up with a way to make car variant random
     call drawcarsloop
-
     
-    halt ;third halt. game will run @ 17fps !! 
+    halt ;halt x3... game will run @ 17fps !! No more halts!
 
     ;delete player
     ld ix,playerdata ;ix points at player properties
@@ -62,13 +69,12 @@ main:
     inc a ;increment animTimer
     ld (ix+9),a ;set new value to timer
     cp ANIM_FRAME_LENGTH_TIME
-    call nc,gonextanimframe
-    call addanimationoffset
+    call nc,gonextanimframe ;if animtimer >= frame length, then go to next frame
+    call addanimationoffset ;add the necessary number of bytes to the base bitmap address
     ;draw correct frame
     call drawsprite ;draw sprite in HL
     
-
-    ;ix is already player data, set iy to shop and check for collision
+    ;IX is already player data, set iy to shop and check for collision
     ld iy,shopdata
     call checkplayerhatshopcollision
     
@@ -79,21 +85,64 @@ main:
     call drawsprite
 
     ld de,backgroundattributes
-    ld hl,22528
+    ld hl,0x5800
     ld c,24 ;total lines of screen characters
-    call paintbg
-
-    ld ix,playerdata
-    ld de,22528
-    call paintplayer
+    call paint_bg
 
     jp main
+;;;Main loop ends
 
+;count spawn timer, and spawn when time comes
+;upper lane:
+checktospawnupper:
+    ld a,(carspawntimer)
+    inc a ;increment spawn timer
+    ld (carspawntimer),a ;set new value
+    push af ;save timer to stack
+    ld a,(carspawndelay) ;get delay value
+    ld b,a ;store delay in b
+    pop af ;get back timer from stack
+    cp b ;compare timer with delay
+    ret c ;if timer<delay then return
+    xor a; A=0
+    ld (carspawntimer),a ;reset spawn timer
+    ld ix,up_carsdata ;ix points to start of cars array
+checkalive_upper:    
+    ld a,(ix) ;A=isalive?
+    cp 0
+    push af
+    call z, spawncar_upper ;if car not alive, spawn it
+    pop af
+    cp 0
+    ret z ;return after spawning
+    cp 255 ;255 is end of car data array
+    ret z ;so return if it is 255
+    ld bc,UP_CARSDATA_LENGTH ;BC=number of bytes data is a car
+    add ix,bc ;more to next car
+    jp checkalive_upper ;jump back and spawn next non-alive car
+    ret
 ;
+spawncar_upper:
+    ld (ix),1 ;set car isAlive to true
+    ld (ix+1),0 ;reset position x
+    call random_memstep ;get random number for pos y
+    and LANE_HEIGHT ;make it a number between 0-lane height
+    add a,UPPER_BASE ;add upper base point
+    ld (ix+2),a ;set position y
+    ld a,(car_minspeed_r)
+    ld b,a
+    call random_memstep ;get random number for speed
+    and CAR_MAX_SPEED_R
+    add a,b ;A+=car_minspeed
+    res 7,a ;ensure bit7 is reset (speed is a signed number, bit7 set means negative)
+    ld (ix+6),a
+    ret
+
+
 ;DE=bg attributes
 ;HL=0x5800
 ;C=24
-paintbg:
+paint_bg:
     ld b,32 ;cells per line
 paintlineloop:
     ld a,(de) ;getcolour from DE
@@ -101,31 +150,33 @@ paintlineloop:
     inc hl ;inc HL pointer
     djnz paintlineloop ;loop til B=0
 gonextline
-    inc de ;inc IX pointer to next attribute
+    inc de ;inc DE pointer to next attribute
     dec c ;next line in counter
     ld a,0
     cp c ;is C==0?
-    jr nz, paintbg ;if C!=0, then start loop again
+    jr nz, paint_bg ;if C!=0, then start loop again
     ret ;otherwise finished.
 
-;ix=player
-;de=0x5800
-paintplayer:
-    ld a,(ix+2) ;get player y
-    ld l,a
-    add hl,hl
-    add hl,hl ;HL= player y cell
-    add hl,de ;+= 0x5800
-    ld a,(ix+1) ;get player x
-    rra
-    rra
-    rra ;/8
-    ld e,a
-    ld d,0
-    add hl,de ;+= player x cell
-    ld a,(ix+11) ;get player colour
-    ld (hl),a ;paint the cell
-    ret 
+; ;this routine seems to work in that it colors the correct cell
+; ;but for some reason it seems to not work when used with the rest of the code for drawing player and painting bg
+; ;ix=player
+; ;de=0x5800
+; paintplayer:
+;     ld a,(ix+2) ;get player y
+;     ld l,a
+;     add hl,hl
+;     add hl,hl ;HL= player y cell
+;     add hl,de ;+= 0x5800
+;     ld a,(ix+1) ;get player x
+;     sra a
+;     sra a
+;     sra a;/8
+;     ld e,a
+;     ld d,0
+;     add hl,de ;+= player x cell
+;     ld a,(ix+11) ;get player colour
+;     ld (hl),a ;paint the cell
+;     ret 
 
 ;cycles the anim frame index
 ;inputs
@@ -164,14 +215,20 @@ addoffsetloop:
 ;IX=cars data pointer
 movecarsloop:
     ld a,(ix);
-    cp 1 ;if IX==1...do move
+    cp 1 ;if isAlive...do move
     call z, domove 
     ld de,UP_CARSDATA_LENGTH
     add ix,de
     djnz movecarsloop
     ret
 domove:
+    ld a,(ix+1) ;get xpos
+    cp CAR_MAX_X 
+    jp nc,killcar_r
     call movecarsideways
+    ret
+killcar_r:
+    ld (ix),0 ;set car to dead
     ret
 
 ;loops through all cars and calls deletesprite on them, if alive
@@ -183,7 +240,7 @@ delcarsloop:
     cp 1; compare 1 (is alive)
     call z, dodelete
     ld de,UP_CARSDATA_LENGTH
-    add ix,de   
+    add ix,de ;skip ix to next car data
     djnz delcarsloop
     ret
 dodelete:
@@ -378,21 +435,25 @@ checkplayerhatshopcollision:
 ; NOTE: Due to the coding for movement .The 'speed' property must be the 7th data byte on all moving objects
 
 ;map-data:
+bordercolour db 1
 ;lanes y constants:
-U1 equ 28
-U2 equ 48
-U3 equ 68
 LANE_DIVIDE equ 88
-L1 equ 92
-L2 equ 116
-L3 equ 136
+UPPER_BASE equ 28
+LOWER_BASE equ 92
+LANE_HEIGHT equ 40
+; U1 equ 28
+; U2 equ 48
+; U3 equ 68
+; L1 equ 92
+; L2 equ 116
+; L3 equ 136
 MAX_X equ 255-28 ;rightside boundary for player (screenwidth-playerwidth-speed)
 MIN_Y equ 0+4 ;upper boundary (0+speed)
 MAX_Y equ 192-24 ;bottom boundary for player (screenheight-playerheight-speed)
-
-
 ;note: for moving sprites , data bytes 1-7 must be laid out in order as notes
 ; if not a moving sprite, bytes 1-5 must be laid out in order.
+
+CAR_MAX_X equ 255-28 
 
 ;hatshop data:
 ;isalive?,x,y,sizex,sizey,width (pixels)
@@ -411,12 +472,10 @@ shopdata    db 1,(256/2)-16,192-16,4,16,32
 ;9 animtimer
 ;10 width (pixels)
 ;11 colour attribute
-playerdata  db 1,120,0,3,24,0,4,0,0,0,24,4
-
-
+playerdata  db 1,120,0,3,24,0,8,0,0,0,24,%00101011
 
 ;;car data format:
-;isAlive
+;isAlive (0=dead 1=alive 255=end of car data)
 ;x
 ;y
 ;sizex (cells)
@@ -426,24 +485,32 @@ playerdata  db 1,120,0,3,24,0,4,0,0,0,24,4
 UP_CARS_MAX equ 5
 UP_CARSDATA_LENGTH equ 7
 up_carsdata
-    db 1,0,U1,3,16,1,4
-    db 1,0,U2,3,16,1,8
-    db 1,0,U3,3,16,1,2
-    db 0,0,0,3,16,1,2
-    db 0,0,0,3,16,1,2
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 255 
 LO_CARS_MAX equ 5
 LO_CARSDATA_LENGTH equ 7
 lo_carsdata
-    db 1,0,L1,3,16,1,-4
-    db 1,0,L2,3,16,1,-8
-    db 1,0,L3,3,16,1,-2
-    db 0,0,0,3,16,1,-2
-    db 0,0,0,3,16,1,-2
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,0
+    db 255
+carspawndelay db 32
+carspawntimer db 0
+CAR_MAX_SPEED_R equ 6
+car_minspeed_r db 2
+
 
 include "sprites/cars/carsprites.asm"
 include "sprites/player/nickysprite.asm"
 include "sprites/map/mapsprites.asm"
 include "util/screentools.asm"
 include "util/spritetools.asm"
+include "util/randomgenerators.asm"
 
     end ENTRY_POINT
