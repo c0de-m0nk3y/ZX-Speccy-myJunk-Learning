@@ -24,7 +24,7 @@ main:
     halt ;halt x1
 
     call checktospawnupper ;spawn car after set conditions are met
-
+    call checktospawnlower
 
     ;second halt instruction, wait until the scanlines finish again 
     ;before redrawing player
@@ -37,7 +37,7 @@ main:
     call delcarsloop ;routine that deletes previous frames sprite off screen
     ld b,UP_CARS_MAX ;B=max cars again.    
     ld ix, up_carsdata ;IX=first car again  
-    call movecarsloop ;routine to move the cars
+    call movecarsloop_u ;routine to move the cars
     ld b,UP_CARS_MAX ;B=max cars again
     ld ix, up_carsdata ;IX=car data again
     ld hl,saloon_r ;HL=sprite bitmap ;;;;todo: come up with a way to make car variant random
@@ -50,7 +50,7 @@ main:
     call delcarsloop
     ld b,LO_CARS_MAX    
     ld ix, lo_carsdata
-    call movecarsloop
+    call movecarsloop_l
     ld b,LO_CARS_MAX
     ld ix, lo_carsdata
     ld hl,saloon_l ;todo: come up with a way to make car variant random
@@ -95,9 +95,9 @@ main:
 ;count spawn timer, and spawn when time comes
 ;upper lane:
 checktospawnupper:
-    ld a,(carspawntimer)
+    ld a,(carspawntimer_u)
     inc a ;increment spawn timer
-    ld (carspawntimer),a ;set new value
+    ld (carspawntimer_u),a ;set new value
     push af ;save timer to stack
     ld a,(carspawndelay) ;get delay value
     ld b,a ;store delay in b
@@ -105,7 +105,7 @@ checktospawnupper:
     cp b ;compare timer with delay
     ret c ;if timer<delay then return
     xor a; A=0
-    ld (carspawntimer),a ;reset spawn timer
+    ld (carspawntimer_u),a ;reset spawn timer
     ld ix,up_carsdata ;ix points to start of cars array
 checkalive_upper:    
     ld a,(ix) ;A=isalive?
@@ -129,15 +129,57 @@ spawncar_upper:
     and LANE_HEIGHT ;make it a number between 0-lane height
     add a,UPPER_BASE ;add upper base point
     ld (ix+2),a ;set position y
-    ld a,(car_minspeed_r)
+    ld a,(car_minspeed_u)
     ld b,a
     call random_memstep ;get random number for speed
-    and CAR_MAX_SPEED_R
+    and CAR_MAX_SPEED_U
     add a,b ;A+=car_minspeed
     res 7,a ;ensure bit7 is reset (speed is a signed number, bit7 set means negative)
     ld (ix+6),a
     ret
-
+;lower lane:
+checktospawnlower:
+    ld a,(carspawntimer_l)
+    inc a ;increment spawn timer
+    ld (carspawntimer_l),a ;set new value
+    push af ;save timer to stack
+    ld a,(carspawndelay) ;get delay value
+    ld b,a ;store delay in b
+    pop af ;get back timer from stack
+    cp b ;compare timer with delay
+    ret c ;if timer<delay then return
+    xor a; A=0
+    ld (carspawntimer_l),a ;reset spawn timer
+    ld ix,lo_carsdata ;ix points to start of cars array
+checkalive_lower:    
+    ld a,(ix) ;A=isalive?
+    cp 0
+    push af
+    call z, spawncar_lower ;if car not alive, spawn it
+    pop af
+    cp 0
+    ret z ;return after spawning
+    cp 255 ;255 is end of car data array
+    ret z ;so return if it is 255
+    ld bc,LO_CARSDATA_LENGTH ;BC=number of bytes data is a car
+    add ix,bc ;more to next car
+    jp checkalive_lower ;jump back and spawn next non-alive car
+    ret
+;
+spawncar_lower:
+    ld (ix),1 ;set car isAlive to true
+    ld (ix+1),CAR_MAX_X ;reset position x (to right side)
+    call random_memstep ;get random number for pos y
+    and LANE_HEIGHT ;make it a number between 0-lane height
+    add a,LOWER_BASE ;add lower base point
+    ld (ix+2),a ;set position y
+    ld a,(car_minspeed_l)
+    ld b,a
+    call random_memstep ;get random number for speed
+    or CAR_MAX_SPEED_L
+    add a,b ;A+=car_minspeed  
+    ld (ix+6),a
+    ret
 
 ;DE=bg attributes
 ;HL=0x5800
@@ -209,27 +251,61 @@ addoffsetloop:
     ret
 
 
-;loops through all cars and calls movecarsideways on them, if alive
+;loops through all cars and calls movecarsideways_u on them, if alive
 ;inputs
 ;B= max cars (reducing iterator)
 ;IX=cars data pointer
-movecarsloop:
+;upper:
+movecarsloop_u:
     ld a,(ix);
     cp 1 ;if isAlive...do move
-    call z, domove 
+    call z, domove_u 
     ld de,UP_CARSDATA_LENGTH
     add ix,de
-    djnz movecarsloop
+    djnz movecarsloop_u
     ret
-domove:
+domove_u:
     ld a,(ix+1) ;get xpos
     cp CAR_MAX_X 
-    jp nc,killcar_r
-    call movecarsideways
+    jp nc,killcar_u
+    call movecarsideways_u
     ret
-killcar_r:
+killcar_u:
+    ld (ix),0 ;set car to dead
+    ret  
+;lower:
+movecarsloop_l:
+    ld a,(ix);
+    cp 1 ;if isAlive...do move
+    call z, domove_l 
+    ld de,LO_CARSDATA_LENGTH
+    add ix,de
+    djnz movecarsloop_l
+    ret
+domove_l:
+    ld a,(ix+1) ;get xpos
+    cp CAR_MIN_X 
+    jp c,killcar_l
+    call movecarsideways_l
+    ret
+killcar_l:
     ld (ix),0 ;set car to dead
     ret
+
+;moves object pointed by IX by it own speed property
+;inputs:
+;IX=properties of object to move
+movecarsideways_u:
+    ld a,(ix+1) ;load xpos to a
+    add a,(ix+6) ;add speed
+    ld (ix+1),a ;set new xpos value
+    ret
+movecarsideways_l:
+    ld a,(ix+1) ;load xpos to a
+    add a,(ix+6) ;add speed
+    ld (ix+1),a ;set new xpos value
+    ret
+
 
 ;loops through all cars and calls deletesprite on them, if alive
 ;inputs
@@ -300,14 +376,7 @@ checkkeys:
     pop af
     ret
 
-;moves object pointed by IX by it own speed property
-;inputs:
-;IX=properties of object to move
-movecarsideways:
-    ld a,(ix+1) ;load xpos to a
-    add a,(ix+6) ;add speed
-    ld (ix+1),a ;set new xpos value
-    ret
+
 ;player movement routines
 moveup:
     ld a,(ix+2) ;load ypos to a
@@ -453,6 +522,7 @@ MAX_Y equ 192-24 ;bottom boundary for player (screenheight-playerheight-speed)
 ;note: for moving sprites , data bytes 1-7 must be laid out in order as notes
 ; if not a moving sprite, bytes 1-5 must be laid out in order.
 
+CAR_MIN_X equ 17
 CAR_MAX_X equ 255-28 
 
 ;hatshop data:
@@ -494,16 +564,23 @@ up_carsdata
 LO_CARS_MAX equ 5
 LO_CARSDATA_LENGTH equ 7
 lo_carsdata
-    db 0,0,0,3,16,1,0
-    db 0,0,0,3,16,1,0
-    db 0,0,0,3,16,1,0
-    db 0,0,0,3,16,1,0
-    db 0,0,0,3,16,1,0
+    db 0,0,0,3,16,1,-6
+    db 0,0,0,3,16,1,-10
+    db 0,0,0,3,16,1,-5
+    db 0,0,0,3,16,1,-3
+    db 0,0,0,3,16,1,-6
     db 255
 carspawndelay db 32
-carspawntimer db 0
-CAR_MAX_SPEED_R equ 6
-car_minspeed_r db 2
+carspawntimer_u db 0
+carspawntimer_l db 0
+CAR_MAX_SPEED_U equ %10000111
+CAR_MAX_SPEED_L equ %11111000
+
+; CAR_MAX_SPEED_L equ -6
+; CAR_MAX_SPEED_U equ 6
+car_minspeed_l db -2
+car_minspeed_u db 2
+
 
 
 include "sprites/cars/carsprites.asm"
