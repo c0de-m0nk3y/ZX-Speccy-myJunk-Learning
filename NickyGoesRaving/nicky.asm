@@ -16,8 +16,9 @@ ENTRY_POINT equ 32768
     call 0xdaf ;clear screen, open ch2
     ld a,(bordercolour) ;choose border colour
     call 0x229b ;set border color with chosen value
-main:
 
+   
+main:
 
     ;wait for interrupt (ie. wait until the final tv linescan has 
     ;just completed -happens at 50hz) -locks game to 50fps
@@ -57,6 +58,12 @@ main:
     call drawcarsloop
     
     halt ;halt x3... game will run @ 17fps !! No more halts!
+
+    ld b, 16 ;num white lines
+    ld ix,whitelineproperties
+    ld hl,WHITE_LINE
+    call drawwhitelinesloop
+
 
     ;delete player
     ld ix,playerdata ;ix points at player properties
@@ -345,6 +352,17 @@ dodraw:
     pop bc
     ret
 
+drawwhitelinesloop:
+    push bc
+    push hl
+    call drawsprite
+    pop hl
+    pop bc
+    ld de,WHITE_LINE_DATA_LENGTH
+    add ix,de
+    djnz drawwhitelinesloop
+    ret
+
 
 ; checks state of keys and calls move functions for player
 ;Inputs:
@@ -506,7 +524,28 @@ checkplayerhatshopcollision:
 ;map-data:
 bordercolour db 1
 ;lanes y constants:
-LANE_DIVIDE equ 88
+LANE_DIVIDE equ 11
+WHITE_LINE
+    db 0,0,0,62
+    db 62,0,0,0 ;white line
+whitelineproperties:
+    db 1,0,88,1,8
+    db 1,16,88,1,8
+    db 1,32,88,1,8
+    db 1,48,88,1,8
+    db 1,64,88,1,8
+    db 1,80,88,1,8
+    db 1,96,88,1,8
+    db 1,112,88,1,8
+    db 1,128,88,1,8
+    db 1,144,88,1,8
+    db 1,160,88,1,8
+    db 1,176,88,1,8
+    db 1,192,88,1,8
+    db 1,208,88,1,8
+    db 1,224,88,1,8
+    db 1,240,88,1,8
+WHITE_LINE_DATA_LENGTH equ 5
 UPPER_BASE equ 28
 LOWER_BASE equ 92
 LANE_HEIGHT equ 40
