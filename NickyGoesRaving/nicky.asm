@@ -17,6 +17,13 @@ ENTRY_POINT equ 32768
     ld a,(bordercolour) ;choose border colour
     call 0x229b ;set border color with chosen value
 
+    
+
+mainmenu:
+    halt
+    ld ix,menuattr
+    call paintmenu
+    jp mainmenu
    
 main:
 
@@ -226,6 +233,30 @@ gonextline
 ;     ld a,(ix+11) ;get player colour
 ;     ld (hl),a ;paint the cell
 ;     ret 
+
+;IX=menu attri pointer (the data is lined up in pairs x and y)
+paintmenu:
+    ld a,(ix)
+    cp 255
+    ret z
+    ld a,(ix+1) ;A=ypos
+    ld l,a
+    add hl,hl
+    add hl,hl
+    add hl,hl
+    add hl,hl
+    add hl,hl ;x32
+    ld a,(ix)
+    ld e,a
+    ld d,0
+    add hl,de
+    ld de,0x5800
+    add hl,de
+    ;call random_memstep
+    ld (hl),%00010000 ;paint cell with random value
+    inc ix 
+    inc ix ;move ix forward 2
+    jp paintmenu
 
 ;cycles the anim frame index
 ;inputs
@@ -524,10 +555,12 @@ checkplayerhatshopcollision:
 ;map-data:
 bordercolour db 1
 ;lanes y constants:
+UPPER_BASE equ 28
+LOWER_BASE equ 96
+LANE_HEIGHT equ 40
 LANE_DIVIDE equ 11
 WHITE_LINE
-    db 0,0,0,62
-    db 62,0,0,0 ;white line
+    db 0,0,0,62,62,0,0,0 ;white line
 whitelineproperties:
     db 1,0,88,1,8
     db 1,16,88,1,8
@@ -546,15 +579,6 @@ whitelineproperties:
     db 1,224,88,1,8
     db 1,240,88,1,8
 WHITE_LINE_DATA_LENGTH equ 5
-UPPER_BASE equ 28
-LOWER_BASE equ 92
-LANE_HEIGHT equ 40
-; U1 equ 28
-; U2 equ 48
-; U3 equ 68
-; L1 equ 92
-; L2 equ 116
-; L3 equ 136
 MAX_X equ 255-28 ;rightside boundary for player (screenwidth-playerwidth-speed)
 MIN_Y equ 0+4 ;upper boundary (0+speed)
 MAX_Y equ 192-24 ;bottom boundary for player (screenheight-playerheight-speed)
@@ -625,6 +649,7 @@ car_minspeed_u db 2
 include "sprites/cars/carsprites.asm"
 include "sprites/player/nickysprite.asm"
 include "sprites/map/mapsprites.asm"
+include "sprites/map/mainmenuattr.asm"
 include "util/screentools.asm"
 include "util/spritetools.asm"
 include "util/randomgenerators.asm"
