@@ -14,52 +14,112 @@ ENTRY_POINT equ 32768
     org ENTRY_POINT
 
     call 0xdaf ;clear screen, open ch2
-    ld a,(bordercolour) ;choose border colour
+    xor a ;start with a black border
     call 0x229b ;set border color with chosen value
 
+main:
+    ld a,(gamestate)
+    cp 0 
+    call z, showmainmenu
+    call z, updatemenu
+    ret z
+    cp 1
+    call z, begin_new_game
+    cp 2
+    ;call z, play_rave
+    jp main
+
+showmainmenu:
+    ld a,(menuinitialized)
+    cp 1
+    ret z ;return if menu is already initialized
+    ld a,1
+    ld (menuinitialized),a ;set init flag to true
+    ;;;;;set up main menu
+    ;'nicky goes'
     ld a,22 ;AT code
     rst 16
-    ld a,6 ;text ypos
+    ld a,1 ;text ypos
     rst 16
     ld a,11 ;text xpos
     rst 16
     ld de,titlestring
     ld bc,eotitlestring-titlestring
-    call 0x203c
-    
+    call 0x203c ; print the string
+    ;'1-WASD'
+    ld a,22 ;AT code
+    rst 16
+    ld a,11 ;text ypos
+    rst 16
+    ld a,10 ;text xpos
+    rst 16
+    ld de,menustring1
+    ld bc,eomenustring1-menustring1
+    call 0x203c ; print the string
+    ;'2-QZIP'
+    ld a,22 ;AT code
+    rst 16
+    ld a,13 ;text ypos
+    rst 16
+    ld a,10 ;text xpos
+    rst 16
+    ld de,menustring2
+    ld bc,eomenustring2-menustring2
+    call 0x203c ; print the string
+    ;'copyright'
+    ld a,22 ;AT code
+    rst 16
+    ld a,21 ;text ypos
+    rst 16
+    ld a,1 ;text xpos
+    rst 16
+    ld de,menustringcopyright
+    ld bc,eomenustringcopyright-menustringcopyright
+    call 0x203c ; print the string
+    ;set menu paint colours:
     ld de,menubackgroundattr
     ld hl,0x5800
     ld c,24 ;total lines of screen characters
     call paint_bg
+    ret 
 
-
-
-    
-    
-
-mainmenu:
+updatemenu:
     halt
-    ld ix,menu_nicky
+    ld ix,menu_raving
     call paintmenu
-    jp mainmenu
+    call checkkeys_mode1_menu
+    jp updatemenu
+    ret
 
-movetomaingame:
-    ld a,1 ;chose border colour
-    ld (bordercolour),a ;cache border colour
-    call 0x229b ;set border color with chosen value
+selectgame1:
+    pop af ;because it is pushed in the 'check keys menu' function
+    ld a,1
+    ld (controls_choice),a
+    ld (gamestate),a
+    jp main
+
+selectgame2:
+    pop af ;because it is pushed in the 'check keys menu' function
+    ld a,2
+    ld (controls_choice),a
+    dec a ;A=1
+    ld (gamestate),a
+    jp main
+
+begin_new_game:
+    call 0xdaf ;cls
+    ld a,(bordercolour_road)
+    call 0x229b ;set border colour
+    ; todo will have to reinitialize any player / game variables when gameover/new games are allowed
+    jp play_road
+
    
-main:
-
-    ;wait for interrupt (ie. wait until the final tv linescan has 
-    ;just completed -happens at 50hz) -locks game to 50fps
+play_road:
     halt ;halt x1
 
     call checktospawnupper ;spawn car after set conditions are met
     call checktospawnlower
 
-    ;second halt instruction, wait until the scanlines finish again 
-    ;before redrawing player
-    ;(PRO-helps with flicker / CON-game now running @ 25fps)
     halt ;halt x2 
 
     ;update loop for car array (upper):
@@ -74,7 +134,6 @@ main:
     ld hl,saloon_r ;HL=sprite bitmap ;;;;todo: come up with a way to make car variant random
     call drawcarsloop ;draws the cars
 
-
     ;loop all lower cars and update them
     ld b,LO_CARS_MAX
     ld ix, lo_carsdata
@@ -87,19 +146,24 @@ main:
     ld hl,saloon_l ;todo: come up with a way to make car variant random
     call drawcarsloop
     
-    halt ;halt x3... game will run @ 17fps !! No more halts!
-
+    ;draw lines on road
     ld b, 16 ;num white lines
     ld ix,whitelineproperties
     ld hl,WHITE_LINE
     call drawwhitelinesloop
 
+    halt ;halt x3... game will run @ 17fps !! No more halts!
 
     ;delete player
     ld ix,playerdata ;ix points at player properties
     call deletesprite
     ;check keys and move if pressed
-    call checkkeys ;checks for WASD and moves player if pressed (also changes players animstate value)
+    ld a,(controls_choice)
+    cp 1
+    call z, checkkeys_mode1 ;WASD keys
+    ld a,(controls_choice)
+    cp 2
+    call z, checkkeys_mode2 ;QZIP keys
     call setcorrectplayerbitmap ;sets hl to first bitmap in each animstate
     ;cycle animation frames
     ld a,(ix+9) ;a=animtimer
@@ -126,7 +190,8 @@ main:
     ld c,24 ;total lines of screen characters
     call paint_bg
 
-    jp main
+    call drawhud 
+    jp play_road
 ;;;Main loop ends
 
 ;count spawn timer, and spawn when time comes
@@ -204,7 +269,9 @@ checkalive_lower:
     ret
 ;
 spawncar_lower:
-    ld (ix),1 ;set car isAlive to true
+    ld a,1
+    ld (controls_enabled),a ;set controls enabled to true ;todo: this is a hack! consider making a countdown from game start instead
+    ld (ix),a ;set car isAlive to true
     ld (ix+1),CAR_MAX_X ;reset position x (to right side)
     call random_memstep ;get random number for pos y
     and LANE_HEIGHT ;make it a number between 0-lane height
@@ -421,11 +488,26 @@ drawwhitelinesloop:
     djnz drawwhitelinesloop
     ret
 
+checkkeys_mode1_menu:
+    ld bc,0xf7fe
+    in a, (c)
+    rra ;key0 = 1
+    push af
+    call nc,selectgame1
+    pop af
+    rra ;key1 = 2
+    push af
+    call nc,selectgame2
+    pop af
+    ret
 
 ; checks state of keys and calls move functions for player
 ;Inputs:
 ;IX=object being moved upon keypress
-checkkeys:
+checkkeys_mode1:
+    ld a,(controls_enabled)
+    cp 0
+    ret z ;return if controls_enabled == false
     ld bc,0xfdfe
     in a, (c) ; reads ports, affects flags, but doesnt store value to a register
     rra  ; outermost bit = key0 = A
@@ -451,7 +533,41 @@ checkkeys:
     call nc, moveup
     pop af
     ret
-
+checkkeys_mode2:
+    ld a,(controls_enabled)
+    cp 0
+    ret z ;return if controls_enabled == false
+    ld bc,0xfbfe
+    in a, (c) ; reads ports, affects flags, but doesnt store value to a register
+    rra  ; outermost bit = key0 = Q
+    push af
+    call nc, moveup
+    pop af
+    ld bc,0xfefe
+    in a, (c)
+    rra ; key CAPSHIFT
+    push af
+    ;call nc, todo: see if we can delete this pushpop
+    pop af
+    rra ; key Z
+    push af
+    call nc, movedown
+    pop af
+    ld bc,0xdffe
+    in a, (c) ; reads ports, affects flags, but doesnt store value to a register
+    rra  ; outermost bit = key0 = P
+    push af
+    call nc, moveright
+    pop af
+    rra  ; outermost bit = key1 = O
+    push af
+    ; call nc, moveright ;again can it deleted? TODO
+    pop af
+    rra  ; outermost bit = key2 = I
+    push af
+    call nc, moveleft
+    pop af
+    ret
 
 ;player movement routines
 moveup:
@@ -564,13 +680,110 @@ checkplayerhatshopcollision:
     cp l ;compare A with L
     ret c ;return if player is above the shop y
     ;if this far, then its a hit....
+    ld a,(ix+7) ;get hat bool
+    cp 0 ;if it is still zero we can decrease cash (ie. this happens one time only)
+    call z, decreasecash
+    ld a,(ix+7) ;get hat bool
+    cp 0
+    call z,increasescore10
     ld (ix+7),1 ;set hat bool to 1
     call setanim5 ;set anim to down with hat;
     call setcorrectplayerbitmap ;change the sprite to hatted sprite
+    
     ret
 ;
 ;
 ;
+
+drawhud:
+    ;setup score text position
+    ld a,22 ;AT
+    rst 16
+    xor a ;string ypos
+    rst 16
+    xor a ;string xpos
+    rst 16
+    ld de, score_label_string
+    ld bc, eoscore_label_string-score_label_string
+    call 0x203c
+    ;setup cash text position
+    ld a,22 ;AT
+    rst 16
+    xor a ;string ypos
+    rst 16
+    ld a,27 ;string xpos
+    rst 16
+    ld de,cash_label_string
+    ld bc,eocash_label_string-cash_label_string
+    call 0x203c
+    ret
+
+;although there are 3 digits for cash, only the middle digit ever changes
+decreasecash:
+    ld a,(cash_10)
+    dec a
+    ld (cash_10),a
+    add a,ASCII_ZERO
+    ld (cash_amount_10),a
+    ret
+
+increasescore10:
+    ld a,(score_10)
+    inc a
+    ld (score_10),a
+    cp 10
+    call z,increasescore100
+    jp z,resetscore10
+    add a,ASCII_ZERO
+    ld (score_amount_10),a
+    ret
+resetscore10:
+    xor a
+    ld (score_10),a
+    add a,ASCII_ZERO
+    ld (score_amount_10),a
+    ret
+increasescore100:
+    ld a,(score_100)
+    inc a
+    ld (score_100),a
+    cp 10
+    call z,increasescore1000
+    jp z,resetscore100
+    add a,ASCII_ZERO
+    ld (score_amount_100),a
+    ret
+resetscore100:
+    xor a
+    ld (score_100),a
+    add a,ASCII_ZERO
+    ld (score_amount_100),a
+    ret
+increasescore1000:
+    ld a,(score_1000)
+    inc a
+    ld (score_1000),a
+    cp 10
+    call z,increasescore10000
+    jp z,resetscore1000
+    add a,ASCII_ZERO
+    ld (score_amount_1000),a
+    ret
+resetscore1000:
+    xor a
+    ld (score_1000),a
+    add a,ASCII_ZERO
+    ld (score_amount_1000),a
+    ret
+increasescore10000:
+    ld a,(score_10000)
+    cp 9
+    ret z
+    inc a
+    ld (score_10000),a
+    add a,ASCII_ZERO
+    ld (score_amount_10000),a
+    ret
 
 
 ;
@@ -578,20 +791,54 @@ checkplayerhatshopcollision:
 ;
 ;; DATA BEGINS
 ; NOTE: Due to the coding for movement .The 'speed' property must be the 7th data byte on all moving objects
+;note: for moving sprites , data bytes 1-7 must be laid out in order as notes
+; if not a moving sprite, bytes 1-5 must be laid out in order.
+ASCII_ZERO equ 0x30
+score_10 dw 0
+score_100 dw 0
+score_1000 dw 0
+score_10000 dw 0
+cash_10 dw 3
+
+;game data:
+gamestate db 0 ; (0=main menu, 1=road, 2=rave)
+menuinitialized db 0
+controls_choice db 0 ; 0=none 1=WASD 2=QZIP
+
+;hud data
+score_label_string db 'SCORE: '
+score_amount_10000 db ASCII_ZERO
+score_amount_1000 db ASCII_ZERO
+score_amount_100 db ASCII_ZERO
+score_amount_10 db ASCII_ZERO
+score_amount_1 db ASCII_ZERO
+eoscore_label_string equ $
+cash_label_string db 0x60
+cash_amount_100 db ASCII_ZERO
+cash_amount_10 db ASCII_ZERO + 3
+cash_amount_1 db ASCII_ZERO
+eocash_label_string equ $
+
 
 ;menu data:
-titlestring db 'GOES RAVING'
+titlestring db 'NICKY GOES'
 eotitlestring equ $
+menustring1 db '1 - WSAD keys'
+eomenustring1 equ $
+menustring2 db '2 - QZIP keys'
+eomenustring2 equ $
+menustringcopyright db 0x7f,' ','Ninkenpoop Studios 1982,2020'
+eomenustringcopyright equ $
+
 ;map-data:
-bordercolour db 1
-;lanes y constants:
-UPPER_BASE equ 28
-LOWER_BASE equ 96
+bordercolour_road db 1
+UPPER_BASE equ 28 ;origin for upper cars (+random offset)
+LOWER_BASE equ 96 ;origin for lower cars (+random offset)
 LANE_HEIGHT equ 40
 LANE_DIVIDE equ 11
-WHITE_LINE
-    db 0,0,0,62,62,0,0,0 ;white line
-whitelineproperties:
+WHITE_LINE ;white line bitmap (8x8)
+    db 0,0,0,62,62,0,0,0 
+whitelineproperties: ;all road lines to be drawn
     db 1,0,88,1,8
     db 1,16,88,1,8
     db 1,32,88,1,8
@@ -609,11 +856,10 @@ whitelineproperties:
     db 1,224,88,1,8
     db 1,240,88,1,8
 WHITE_LINE_DATA_LENGTH equ 5
+
 MAX_X equ 255-28 ;rightside boundary for player (screenwidth-playerwidth-speed)
 MIN_Y equ 0+4 ;upper boundary (0+speed)
 MAX_Y equ 192-24 ;bottom boundary for player (screenheight-playerheight-speed)
-;note: for moving sprites , data bytes 1-7 must be laid out in order as notes
-; if not a moving sprite, bytes 1-5 must be laid out in order.
 
 CAR_MIN_X equ 17
 CAR_MAX_X equ 255-28 
@@ -636,6 +882,11 @@ shopdata    db 1,(256/2)-16,192-16,4,16,32
 ;10 width (pixels)
 ;11 colour attribute
 playerdata  db 1,120,0,3,24,0,8,0,0,0,24,%00101011
+
+
+controls_enabled db 0
+HAT_COST equ 10
+
 
 ;;car data format:
 ;isAlive (0=dead 1=alive 255=end of car data)

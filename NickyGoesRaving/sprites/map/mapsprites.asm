@@ -48,29 +48,3 @@ backgroundattributes:
     db %00111000 ;white paper,black ink
     db %00111000 ;white paper,black ink
     db %00111000 ;white paper,black ink
-
-menubackgroundattr:
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
-    db %00000111 ;black paper,white ink
