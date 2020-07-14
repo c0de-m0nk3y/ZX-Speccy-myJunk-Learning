@@ -17,13 +17,36 @@ ENTRY_POINT equ 32768
     ld a,(bordercolour) ;choose border colour
     call 0x229b ;set border color with chosen value
 
+    ld a,22 ;AT code
+    rst 16
+    ld a,6 ;text ypos
+    rst 16
+    ld a,11 ;text xpos
+    rst 16
+    ld de,titlestring
+    ld bc,eotitlestring-titlestring
+    call 0x203c
+    
+    ld de,menubackgroundattr
+    ld hl,0x5800
+    ld c,24 ;total lines of screen characters
+    call paint_bg
+
+
+
+    
     
 
 mainmenu:
     halt
-    ld ix,menuattr
+    ld ix,menu_nicky
     call paintmenu
     jp mainmenu
+
+movetomaingame:
+    ld a,1 ;chose border colour
+    ld (bordercolour),a ;cache border colour
+    call 0x229b ;set border color with chosen value
    
 main:
 
@@ -252,11 +275,15 @@ paintmenu:
     add hl,de
     ld de,0x5800
     add hl,de
-    ;call random_memstep
-    ld (hl),%00010000 ;paint cell with random value
+    push hl
+    call random_memstep
+    and %00111000
+    pop hl
+    ld (hl),a ;paint cell with random value
     inc ix 
     inc ix ;move ix forward 2
     jp paintmenu
+    ; no return, as it will return above when it hits a value of 255
 
 ;cycles the anim frame index
 ;inputs
@@ -552,6 +579,9 @@ checkplayerhatshopcollision:
 ;; DATA BEGINS
 ; NOTE: Due to the coding for movement .The 'speed' property must be the 7th data byte on all moving objects
 
+;menu data:
+titlestring db 'GOES RAVING'
+eotitlestring equ $
 ;map-data:
 bordercolour db 1
 ;lanes y constants:
