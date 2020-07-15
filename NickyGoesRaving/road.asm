@@ -192,3 +192,66 @@ spawncar_lower:
     add a,b ;A+=car_minspeed  
     ld (ix+6),a
     ret
+
+;moves object pointed by IX by it own speed property
+;inputs:
+;IX=properties of object to move
+movecarsideways_u:
+    ld a,(ix+1) ;load xpos to a
+    add a,(ix+6) ;add speed
+    ld (ix+1),a ;set new xpos value
+    ret
+movecarsideways_l:
+    ld a,(ix+1) ;load xpos to a
+    add a,(ix+6) ;add speed
+    ld (ix+1),a ;set new xpos value
+    ret
+
+
+;loops through all cars and calls deletesprite on them, if alive
+;inputs
+;B= max cars (reducing iterator)
+;IX=cars data pointer
+delcarsloop:
+    ld a,(ix) ;A=car[i].isAlive?
+    cp 1; compare 1 (is alive)
+    call z, dodelete
+    ld de,UP_CARSDATA_LENGTH
+    add ix,de ;skip ix to next car data
+    djnz delcarsloop
+    ret
+dodelete:
+    push bc
+    call deletesprite
+    pop bc
+    ret
+
+;loops through all cars and calls drawsprite on them, if alive
+;inputs
+;B= max cars (reducing iterator)
+;IX=cars data pointer
+drawcarsloop:
+    ld a,(ix) ;A=car[i].isAlive?
+    cp 1; compare 1 (is alive)
+    call z, dodraw
+    ld de,UP_CARSDATA_LENGTH
+    add ix,de
+    djnz drawcarsloop
+    ret
+dodraw:
+    push bc
+    push hl
+    call drawsprite
+    pop hl
+    pop bc
+    ret
+drawwhitelinesloop:
+    push bc
+    push hl
+    call drawsprite
+    pop hl
+    pop bc
+    ld de,WHITE_LINE_DATA_LENGTH
+    add ix,de
+    djnz drawwhitelinesloop
+    ret

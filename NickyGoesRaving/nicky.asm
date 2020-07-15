@@ -87,11 +87,26 @@ updatemenu:
     halt
     ld ix,menu_raving
     call paintmenu
-    call checkkeys_mode1_menu
+    call checkkeys_menu
     jp updatemenu
     ret
 
+checkkeys_menu:
+    ld bc,0xf7fe
+    in a, (c)
+    rra ;key0 = 1
+    push af
+    call nc,selectgame1
+    pop af
+    rra ;key1 = 2
+    push af
+    call nc,selectgame2
+    pop af
+    ret
+
+
 selectgame1:
+    call sound_jingle_dontyouforgetaboutme
     pop af ;because it is pushed in the 'check keys menu' function
     ld a,1
     ld (controls_choice),a
@@ -99,6 +114,7 @@ selectgame1:
     jp main
 
 selectgame2:
+    call sound_GSharp_0_25
     pop af ;because it is pushed in the 'check keys menu' function
     ld a,2
     ld (controls_choice),a
@@ -223,83 +239,6 @@ domove_l:
     ret
 killcar_l:
     ld (ix),0 ;set car to dead
-    ret
-
-;moves object pointed by IX by it own speed property
-;inputs:
-;IX=properties of object to move
-movecarsideways_u:
-    ld a,(ix+1) ;load xpos to a
-    add a,(ix+6) ;add speed
-    ld (ix+1),a ;set new xpos value
-    ret
-movecarsideways_l:
-    ld a,(ix+1) ;load xpos to a
-    add a,(ix+6) ;add speed
-    ld (ix+1),a ;set new xpos value
-    ret
-
-
-;loops through all cars and calls deletesprite on them, if alive
-;inputs
-;B= max cars (reducing iterator)
-;IX=cars data pointer
-delcarsloop:
-    ld a,(ix) ;A=car[i].isAlive?
-    cp 1; compare 1 (is alive)
-    call z, dodelete
-    ld de,UP_CARSDATA_LENGTH
-    add ix,de ;skip ix to next car data
-    djnz delcarsloop
-    ret
-dodelete:
-    push bc
-    call deletesprite
-    pop bc
-    ret
-
-;loops through all cars and calls drawsprite on them, if alive
-;inputs
-;B= max cars (reducing iterator)
-;IX=cars data pointer
-drawcarsloop:
-    ld a,(ix) ;A=car[i].isAlive?
-    cp 1; compare 1 (is alive)
-    call z, dodraw
-    ld de,UP_CARSDATA_LENGTH
-    add ix,de
-    djnz drawcarsloop
-    ret
-dodraw:
-    push bc
-    push hl
-    call drawsprite
-    pop hl
-    pop bc
-    ret
-
-drawwhitelinesloop:
-    push bc
-    push hl
-    call drawsprite
-    pop hl
-    pop bc
-    ld de,WHITE_LINE_DATA_LENGTH
-    add ix,de
-    djnz drawwhitelinesloop
-    ret
-
-checkkeys_mode1_menu:
-    ld bc,0xf7fe
-    in a, (c)
-    rra ;key0 = 1
-    push af
-    call nc,selectgame1
-    pop af
-    rra ;key1 = 2
-    push af
-    call nc,selectgame2
-    pop af
     ret
 
 ; checks state of keys and calls move functions for player
@@ -729,10 +668,12 @@ car_minspeed_u db 2
 include "rave.asm"
 include "road.asm"
 include "sprites/cars/carsprites.asm"
+include "sprites/characters/willywife.asm"
 include "sprites/player/nickysprite.asm"
 include "sprites/map/mapsprites.asm"
 include "sprites/map/mainmenuattr.asm"
 include "util/screentools.asm"
+include "util/soundtools.asm"
 include "util/spritetools.asm"
 include "util/randomgenerators.asm"
 

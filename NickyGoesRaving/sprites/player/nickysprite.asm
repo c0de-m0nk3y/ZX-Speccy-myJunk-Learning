@@ -5,7 +5,7 @@
 ;;idle no hat
 ;;2 frame sequence
 
-ANIM_FRAME_LENGTH_TIME equ 5
+ANIM_FRAME_LENGTH_TIME equ 2 ;measured in frames
 ANIM_CYCLE_LENGTH equ 1 ;frames per sequence (keep it simple! same amount of frames for every possible state)
 NICKY_BYTESPERFRAME equ (3*24) ;just saves calculating at runtime
 NICKY_BYTES_ALLFRAMES equ (NICKY_BYTESPERFRAME*1)
