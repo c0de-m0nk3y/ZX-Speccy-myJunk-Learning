@@ -2,6 +2,7 @@
 
 ;main loop for rave scene
 play_rave:
+    halt
     ;increment step timer and do step when its time.
     ld a,(steptimer)
     inc a
@@ -10,8 +11,12 @@ play_rave:
     call z, dostep
     ld ix,wifedata
     call spawnwives ;checks each frame if wife must spawn
-    ld hl,willywife
     ld ix,wifedata
+    call deletewives
+    ld ix,wifedata
+    call movewives
+    ld ix,wifedata
+    ld hl,willywife
     call drawwives
 
     jp play_rave
@@ -92,6 +97,25 @@ spawn_wife:
     ld (ix),1
     jp spawnnext_wife
 
+
+;IX=wives data
+deletewives:
+    ld a,(ix)
+    cp 255
+    ret z ; if ix=255 , this is my special end of array code, so return.
+    ld a,(ix) 
+    cp 0
+    jp z, deletenext_wife ;if not alive, go to next
+    ; push hl
+    call deletesprite
+    ; pop hl
+deletenext_wife:
+    ld a,WIFE_DATA_LENGTH
+    ld d,0
+    ld e,a
+    add ix,de
+    jp deletewives
+
 drawwives:
     ld a,(ix)
     cp 255
@@ -99,7 +123,9 @@ drawwives:
     ld a,(ix) 
     cp 0
     jp z, drawnext_wife ;if not alive, go to next
+    push hl
     call drawsprite
+    pop hl
 drawnext_wife:
     ld a,WIFE_DATA_LENGTH
     ld d,0
@@ -107,9 +133,44 @@ drawnext_wife:
     add ix,de
     jp drawwives
 
+movewives:
+    ld a,(ix)
+    cp 255
+    ret z ; if ix=255 , this is my special end of array code, so return.
+    ld a,(ix) 
+    cp 0
+    jp z, movenext_wife ;if not alive, go to next
+    dec (ix+2)
+    ld a,(ix+2)
+    cp MIN_Y+1
+    call c, killwife ;if ypos is <=MINY then kill it
+movenext_wife:
+    ld a,WIFE_DATA_LENGTH
+    ld d,0
+    ld e,a
+    add ix,de
+    jp movewives
+
+killwife:
+    ld (ix),0
+    ld (ix+2),192-24
+    ret
+
+; end rave, if he has hat still, he starts on bottom or road
+;otherwise he starts at top
+check_end_rave:
+    ld a,(steps_travelled)
+    cp RAVE_MAX_STEPS
+    ret nz ; return if steps!=MAXSTEPS
+    ld (gamestate),1 ;set gamestate to Rd Scene
+    
+
+
+;;;;; DATA BEGINS ;;;;;
 
 steps_travelled dw 0 ;this will be incremented each frame
-STEP_TIME_DELAY equ 25 
+RAVE_MAX_STEPS equ 10 ;todo :increase this, 10 is just for quick testing
+STEP_TIME_DELAY equ 50
 steptimer db 0
 
 wife_gap db 50 ;gap between wives, will decrease in harder levels
@@ -117,9 +178,9 @@ wife_gap db 50 ;gap between wives, will decrease in harder levels
 ;255=end of array
 ;isAlive,x,y,sizex (cells),sizey (lines),spawndist
 wifedata: ;15 wives! (in pairs!)
-    db 0, 180, 192-24, 3, 24, 2
-    db 0, 170, 192-24, 3, 24, 4
-    db 0, 160, 192-24, 3, 24, 6
-    db 0, 150, 192-24, 3, 24, 8
+    db 0, 200, 192-24, 3, 24, 5
+    db 0, 150, 192-24, 3, 24, 10
+    db 0, 100, 192-24, 3, 24, 15
+    db 0, 50, 192-24, 3, 24, 20
     db 255 ;end array
 WIFE_DATA_LENGTH equ 6

@@ -32,6 +32,9 @@
 ;HL = Pitch = 437500 / Frequency - 30.125
 
 
+
+
+;NOTES:
 ;DE = Duration = Frequency * Seconds
 ;HL = Pitch = 437500 / Frequency - 30.125
 sound_GSharp_0_25: ;GSharp, 0.25 seconds
@@ -89,6 +92,7 @@ sound_G_0_5: ;G, 0.5secs
     ret
 
 
+;JINGLES
 sound_jingle_dontyouforgetaboutme: 
     call sound_B_0_25
     ld b,2 ;pause length

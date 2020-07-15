@@ -17,17 +17,12 @@ ENTRY_POINT equ 32768
     xor a ;start with a black border
     call 0x229b ;set border color with chosen value
 
-main:
-    ld a,(gamestate)
-    cp 0 
-    call z, showmainmenu
-    call z, updatemenu
-    ret z
-    cp 1
-    call z, begin_new_road
-    cp 2
-    call z, begin_new_rave
-    jp main
+start_new_game_main:
+    call showmainmenu
+    call updatemenu
+
+
+    jp start_new_game_main
 
 showmainmenu:
     ld a,(menuinitialized)
@@ -89,7 +84,7 @@ updatemenu:
     call paintmenu
     call checkkeys_menu
     jp updatemenu
-    ret
+    jp updatemenu
 
 checkkeys_menu:
     ld bc,0xf7fe
@@ -541,8 +536,8 @@ score_10000 dw 0
 cash_10 dw 3
 
 ;game data:
-gamestate db 0 ; (0=main menu, 1=road, 2=rave)
-menuinitialized db 0
+; gamestate db 0 ; (0=main menu, 1=road, 2=rave)
+; menuinitialized db 0
 controls_choice db 0 ; 0=none 1=WASD 2=QZIP
 
 ;hud data
