@@ -11,8 +11,6 @@ loop:
     jp loop ;loop forever
 
 
-
-
 hellostring     db 'Hello world!'
                 db 13
 
