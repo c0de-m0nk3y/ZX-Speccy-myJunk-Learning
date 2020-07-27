@@ -100,7 +100,7 @@ checklevelcomplete:
     ret nc ;return if ypos >= MINY+1
     ld a,2
     ld (gamestate),a ;set gamestate to rave mode
-    jp main ;if he has hat, and is at MIN_Y then set gamestate and jump to main
+    jp start_new_game_main ;if he has hat, and is at MIN_Y then set gamestate and jump to main
 
 ;count spawn timer, and spawn when time comes
 ;upper lane:

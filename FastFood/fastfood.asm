@@ -18,6 +18,9 @@ ENTRY_POINT equ 32678
 main:
     halt ;50hz
 
+    ld ix, fooddata
+
+    
     ;increment timer
     ld ix,fooddata
     ld a,(timer_fooddrop)
@@ -93,12 +96,17 @@ moveright:
     ld (ix+1),a ;set the new value to xpos
     ret
 movedown:
+    push iy
+    ld iy, playerdata
+    call checkburgercollidesplayer
+    pop iy
     ld a,(ix+2) ;get ypos
     cp MAX_Y
     call nc, killfood
     ret nc
     add a,(ix+5) ;add speed
     ld (ix+2),a ;set new ypos value
+
     ret
 
 ;kills the food in IX
@@ -160,7 +168,6 @@ delete_skiptonextfood:
     add ix,bc ; add fooddata length to ix
     jp delete_foods ;loop back
 
-
 ;loops all foods, checks if isAlive
 ;if it is, moves it
 ;INPUTS:
@@ -172,10 +179,7 @@ move_foods:
     cp 0 ;is it not alive?
     jp z, move_skiptonextfood ;if not alive, skip draw function
     call movedown ;draw it
-    push iy
-    ld iy,playerdata
-    call checkburgercollidesplayer
-    pop iy
+    
 move_skiptonextfood:    
     ld bc,FOOD_DATA_LENGTH ;BC=food data in bytes
     add ix,bc ; add fooddata length to ix
@@ -217,7 +221,6 @@ checkburgercollidesplayer:
     cp l ;compare A with L
     ret c ;return if food is past the left side
     ld a,(iy+1) ;A=player x
-    ld b,0 ;TODO: is this needed?
     ld c,(ix+7) ;C=food width
     add hl,bc ;add food width to L
     cp l ;compare A with L
@@ -240,15 +243,18 @@ increasescore_1:
     inc a
     ld (score_1),a ;score_1 += 1
     cp 10
+    push af ;push af to stack to save a and f values
     call z, increasescore_10
+    pop af ;retrieve af from stack.
     jp z, resetscore_1
     add a,ASCII_ZERO
-    ld (score_1),a
+    ld (scorelabel_1),a
     ret
 resetscore_1:
     xor a ;A=0
-    add a, ASCII_ZERO
     ld (score_1),a
+    add a, ASCII_ZERO
+    ld (scorelabel_1),a
     ret
 
 increasescore_10:
@@ -256,15 +262,17 @@ increasescore_10:
     inc a
     ld (score_10),a ;score_10 += 1
     cp 10
+    push af
     call z, increasescore_100
+    pop af
     jp z, resetscore_10
     add a,ASCII_ZERO
-    ld (score_10),a
+    ld (scorelabel_10),a
     ret
 resetscore_10:
     xor a ;A=0
     add a, ASCII_ZERO
-    ld (score_10),a
+    ld (scorelabel_10),a
     ret
 
 increasescore_100:
@@ -272,15 +280,17 @@ increasescore_100:
     inc a
     ld (score_100),a ;score_100 += 1
     cp 10
+    push af
     call z, increasescore_1000
+    pop af
     jp z, resetscore_100
     add a,ASCII_ZERO
-    ld (score_100),a
+    ld (scorelabel_100),a
     ret
 resetscore_100:
     xor a ;A=0
     add a, ASCII_ZERO
-    ld (score_100),a
+    ld (scorelabel_100),a
     ret
 
 increasescore_1000:
@@ -322,11 +332,15 @@ fooddata:
     db 255
 
 
+score_1 db 0
+score_10 db 0
+score_100 db 0
+score_1000 db 0
 scorelabelstring db 'SCORE:'
-score_1000 db ASCII_ZERO
-score_100 db ASCII_ZERO
-score_10 db ASCII_ZERO
-score_1 db ASCII_ZERO
+scorelabel_1000 db ASCII_ZERO
+scorelabel_100 db ASCII_ZERO
+scorelabel_10 db ASCII_ZERO
+scorelabel_1 db ASCII_ZERO ;0x30 or 48 
 EO_SCORE_LABEL equ $
 
 SCORE_LABEL_POS_X equ 2

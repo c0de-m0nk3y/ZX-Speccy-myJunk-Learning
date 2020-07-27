@@ -106,7 +106,7 @@ selectgame1:
     ld a,1
     ld (controls_choice),a
     ld (gamestate),a
-    jp main
+    jp start_new_game_main
 
 selectgame2:
     call sound_GSharp_0_25
@@ -115,7 +115,7 @@ selectgame2:
     ld (controls_choice),a
     dec a ;A=1
     ld (gamestate),a
-    jp main
+    jp start_new_game_main
 
 
 
@@ -536,8 +536,8 @@ score_10000 dw 0
 cash_10 dw 3
 
 ;game data:
-; gamestate db 0 ; (0=main menu, 1=road, 2=rave)
-; menuinitialized db 0
+gamestate db 0 ; (0=main menu, 1=road, 2=rave)
+menuinitialized db 0
 controls_choice db 0 ; 0=none 1=WASD 2=QZIP
 
 ;hud data

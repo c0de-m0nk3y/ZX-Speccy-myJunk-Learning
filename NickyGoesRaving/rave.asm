@@ -162,7 +162,8 @@ check_end_rave:
     ld a,(steps_travelled)
     cp RAVE_MAX_STEPS
     ret nz ; return if steps!=MAXSTEPS
-    ld (gamestate),1 ;set gamestate to Rd Scene
+    ld a,1
+    ld (gamestate),a ;set gamestate to Rd Scene
     
 
 
